@@ -6,3 +6,4 @@
 4. [`04-part-1-verification.md`](04-part-1-verification.md)
 5. [`05-recovery-and-verification.md`](05-recovery-and-verification.md)
 6. [`06-part-1-local-commit.md`](06-part-1-local-commit.md)
+7. [`07-github-publication.md`](07-github-publication.md)

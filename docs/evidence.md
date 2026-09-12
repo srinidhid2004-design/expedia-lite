@@ -73,3 +73,14 @@ Invoke-WebRequest -Uri 'http://127.0.0.1:5173/api/hotels/search?name=Ocean%20Pal
 Related prompt: [`06-part-1-local-commit.md`](../prompts/06-part-1-local-commit.md).
 
 The user confirmed that the manual review in Visual Studio Code was complete and approved the current Part 1 implementation for the reviewed local commit.
+
+## 2026-09-11 — Public GitHub publication
+
+Related prompt: [`07-github-publication.md`](../prompts/07-github-publication.md).
+
+- Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite).
+- Reviewed implementation commit: [`0c1666d2bb03fdefda55ccf3b905d80801d78d5f`](https://github.com/srinidhid2004-design/expedia-lite/commit/0c1666d2bb03fdefda55ccf3b905d80801d78d5f).
+- The repository was created public and empty in the GitHub browser, without a generated README, `.gitignore`, license, template, issue, project, release, or additional branch.
+- Command: `git push -u origin main`.
+  - Observed: the reviewed `main` implementation commit was pushed successfully, and local `main` began tracking `origin/main`.
+- An unauthenticated public check confirmed that the repository and implementation commit were accessible before the submission documentation was finalized.

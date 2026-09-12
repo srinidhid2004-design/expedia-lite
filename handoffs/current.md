@@ -33,12 +33,12 @@ Full evidence, including the original stop-boundary mistake, is in [`../docs/evi
 ## Remaining work
 
 - The manual Visual Studio Code review is complete, and the current Part 1 implementation is approved.
-- Git is initialized on branch `main`. Before this local-commit checkpoint, `HEAD` was unborn and no commit, remote, or push existed.
-- The reviewed local Part 1 commit is complete; no GitHub remote is configured and nothing has been pushed.
-- `report.md` still needs an accessible public GitHub repository URL and the exact Part 1 implementation commit during the publication checkpoint.
+- Part 1 is published publicly at [srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite) on branch `main`.
+- The reviewed implementation commit is [`0c1666d2bb03fdefda55ccf3b905d80801d78d5f`](https://github.com/srinidhid2004-design/expedia-lite/commit/0c1666d2bb03fdefda55ccf3b905d80801d78d5f).
+- Local `main` tracks `origin/main`; the final report uses public project links and immutable implementation-commit screenshot links.
 - Submission to the course site remains pending.
 - The two upstream test-client deprecation warnings remain; no dependency change is authorized or required for the passing Part 1 checks.
 
 ## Next task
 
-Publish the reviewed `main` branch to a public GitHub repository, then complete and verify the repository URL and exact implementation-commit link in `report.md` before submission.
+Review the finalized public links and upload `report.md` through the course site. Part 2 is the next development task and remains unimplemented; do not begin it without separate authorization.
