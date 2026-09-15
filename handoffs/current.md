@@ -1,44 +1,46 @@
 # Current handoff
 
-Updated: 2026-09-11
+Updated: 2026-09-15
 
 ## Orientation
 
-Expedia Lite is a FastAPI and Vue 3 Part 1 application for searching fictional hotel stays. Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and use [`../docs/verification.md`](../docs/verification.md) for repeatable checks.
+Expedia Lite is a FastAPI, Vue 3, and SQLite course application. Part 1 remains preserved on `main`; Part 2 work is currently on `feature/part-2-sqlite-crud`. Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and use [`../docs/verification.md`](../docs/verification.md) for repeatable checks.
 
 ## What exists
 
 - The unmodified instructor data pack is under `data/`.
-- The Python data layer reads only `hotels.csv` and `trips.csv`, joins them on `hotel_id`, derives nights and price, and performs case-insensitive partial hotel-name search.
-- FastAPI exposes `/api/health` and `/api/hotels/search?name=...`.
-- Vue provides labeled hotel-name search, loading/error/empty feedback, and a clearly labeled results table through a narrow Vite `/api` proxy.
-- Backend data/API tests and frontend lint/build tooling are configured.
-- `users.csv` and `bookings.csv` are preserved but unused. SQLite, booking, history, CRUD, authentication, and persistence behavior are intentionally absent.
+- SQLite is created locally and seeded once from all four CSVs. A stored seed marker prevents reloads and duplicate starter rows on restart.
+- Hotel search now reads a SQLite join while preserving Part 1 partial, case-insensitive behavior.
+- FastAPI exposes health, hotel search, demo traveler, booking-history, create-booking, cancel-booking, and delete-booking routes under `/api`.
+- Vue exposes the full required flow: select a demo traveler, search stays, create a booking, read history, cancel while retaining the row, and delete a test booking.
+- New booking IDs use a persistent counter and are not reused after deletion.
+- The generated database, virtual environment, dependency directory, and build output are ignored.
+- No dependency declaration or instructor data file changed for Part 2.
 
 ## Verification state
 
-On 2026-09-11, the recovery checkpoint passed:
+On 2026-09-15:
 
-- Confirmed `backend/.venv` as Python 3.14.7 and the interpreter used for backend checks.
-- Confirmed application CSV references are limited to `hotels.csv` and `trips.csv`; the Part 2 source scan returned no matches.
-- Backend: `9 passed` with two upstream FastAPI/Starlette test-client deprecation warnings.
-- Frontend: Oxlint passed, ESLint passed, and Vite 8.3.0 built 12 modules successfully.
-- API: health passed; `Harbor` returned `T001` and `T009`; `Ocean Palace` returned zero rows.
-- Browser: matching, no-results, and empty-input states passed; the console had no warnings/errors; the `390 × 844` responsive check passed.
-- Screenshots are stored under [`../screenshots/`](../screenshots/).
-- The task-owned backend and frontend process trees were stopped; ports 8000 and 5173 are released.
+- Standard-library SQLite 3.50.4 was confirmed with the project virtual-environment interpreter; no dependency installation was needed.
+- Backend: 15 tests passed, covering search, API behavior, one-time seeding, unique IDs, CRUD, and persistence.
+- Frontend: Oxlint passed, ESLint passed, and the Vite production build passed.
+- API: health passed; matching and no-results searches passed through the frontend proxy.
+- Browser: U006 started with no bookings; B007 was created, survived a browser refresh, was cancelled and retained, then deleted. B008 was created and remained after both services restarted.
+- After restart, SQLite held 8 hotels, 12 trips, 6 users, and 7 current bookings; `seeded` remained `1`, the next booking number remained `9`, and B008 remained confirmed.
+- Empty-input and no-results guidance passed, the interface remained usable in the narrow in-app browser, and the browser console contained no application errors.
+- Browser evidence is stored under [`../screenshots/`](../screenshots/).
+- Only the task-owned verification services were stopped; ports 8000 and 5173 are released.
 
-Full evidence, including the original stop-boundary mistake, is in [`../docs/evidence.md`](../docs/evidence.md).
+Detailed commands and observed results are in [`../docs/evidence.md`](../docs/evidence.md).
 
 ## Remaining work
 
-- The manual Visual Studio Code review is complete, and the current Part 1 implementation is approved.
-- Part 1 is published publicly at [srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite) on branch `main`.
-- The reviewed implementation commit is [`0c1666d2bb03fdefda55ccf3b905d80801d78d5f`](https://github.com/srinidhid2004-design/expedia-lite/commit/0c1666d2bb03fdefda55ccf3b905d80801d78d5f).
-- Local `main` tracks `origin/main`; the final report uses public project links and immutable implementation-commit screenshot links.
-- Submission to the course site remains pending.
-- The two upstream test-client deprecation warnings remain; no dependency change is authorized or required for the passing Part 1 checks.
+- The user completed the manual Visual Studio Code scan and browser demonstration and approved Part 2 on `feature/part-2-sqlite-crud`.
+- Part 2 changes are ready for the reviewed feature commit and remain unmerged and unpushed at this point in the checkpoint.
+- The exact reviewed Part 2 implementation commit, merge commit, and immutable public screenshot links remain pending.
+- The existing public repository still reflects the submitted Part 1 checkpoint until review and publication are authorized.
+- Two upstream FastAPI/Starlette test-client deprecation warnings remain; no dependency change is required for passing checks.
 
 ## Next task
 
-Review the finalized public links and upload `report.md` through the course site. Part 2 is the next development task and remains unimplemented; do not begin it without separate authorization.
+Create the reviewed feature-branch commit, merge it into `main` without rewriting the Part 1 history, run the combined verification, finalize public report links, and publish the authorized commits.

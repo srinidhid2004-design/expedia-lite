@@ -20,12 +20,14 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 a:focus-visible {
   outline: 3px solid #f0aa4f;
   outline-offset: 3px;
@@ -129,6 +131,53 @@ h2 {
   border-radius: 18px;
   background: rgb(255 255 255 / 76%);
   box-shadow: 0 18px 60px rgb(39 45 54 / 9%);
+}
+
+.traveler-panel {
+  display: flex;
+  gap: 32px;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding: 28px 32px;
+  border: 1px solid rgb(19 34 59 / 10%);
+  border-radius: 18px;
+  background: #173c55;
+  box-shadow: 0 18px 50px rgb(39 45 54 / 10%);
+}
+
+.traveler-panel h2,
+.traveler-panel .section-copy {
+  color: #fffaf2;
+}
+
+.section-copy {
+  max-width: 650px;
+  margin: 10px 0 0;
+  line-height: 1.55;
+}
+
+.traveler-control {
+  width: min(100%, 330px);
+  flex: 0 0 330px;
+}
+
+.traveler-control label {
+  display: block;
+  margin-bottom: 9px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+select {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 42px 0 14px;
+  border: 1px solid #c7c1b8;
+  border-radius: 10px;
+  color: #18243a;
+  background: #fff;
 }
 
 .search-card label {
@@ -262,6 +311,68 @@ tbody tr:hover {
   font-weight: 800;
 }
 
+.date-separator {
+  display: block;
+  margin-top: 4px;
+  color: #697383;
+}
+
+.action-button {
+  min-width: 100px;
+  min-height: 40px;
+  padding: 0 15px;
+  box-shadow: none;
+  font-size: 0.8rem;
+}
+
+.action-button.secondary {
+  color: #173c55;
+  background: #e4eef2;
+}
+
+.action-button.secondary:hover:not(:disabled) {
+  background: #cadde4;
+}
+
+.action-button.danger {
+  color: #8a321c;
+  background: #f6e2da;
+}
+
+.action-button.danger:hover:not(:disabled) {
+  color: #fff;
+  background: #a54025;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-confirmed {
+  color: #195737;
+  background: #dceee3;
+}
+
+.status-cancelled {
+  color: #7d3d28;
+  background: #f4e4dc;
+}
+
+.history-empty {
+  min-height: 180px;
+}
+
 .empty-state {
   display: grid;
   min-height: 230px;
@@ -320,6 +431,16 @@ footer {
 
   .results-heading {
     display: block;
+  }
+
+  .traveler-panel {
+    display: block;
+    padding: 24px;
+  }
+
+  .traveler-control {
+    width: 100%;
+    margin-top: 20px;
   }
 
   .status {

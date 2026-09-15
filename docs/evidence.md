@@ -84,3 +84,76 @@ Related prompt: [`07-github-publication.md`](../prompts/07-github-publication.md
 - Command: `git push -u origin main`.
   - Observed: the reviewed `main` implementation commit was pushed successfully, and local `main` began tracking `origin/main`.
 - An unauthenticated public check confirmed that the repository and implementation commit were accessible before the submission documentation was finalized.
+
+## 2026-09-15 — Part 2 implementation verification
+
+Related prompt: [`08-part-2-implementation.md`](../prompts/08-part-2-implementation.md).
+
+The user authorized Part 2 after the Part 1 submission. Work began on `feature/part-2-sqlite-crud` so the published Part 1 checkpoint remains preserved on `main`. No merge or push occurred during this implementation checkpoint.
+
+### Scope, storage, and dependency checks
+
+- Confirmed the backend interpreter as `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\.venv\Scripts\python.exe`.
+- Confirmed Python’s standard-library `sqlite3` support with SQLite `3.50.4`; a temporary database row survived close and reopen. No dependency was installed or changed.
+- Command: `rg -n --glob '!**/.venv/**' --glob '!**/node_modules/**' --glob '!**/dist/**' '\.csv' backend\app frontend\src`.
+  - Observed: the only runtime CSV paths are the four one-time seed inputs in `backend/app/database.py`.
+- Command: `git diff -- data`.
+  - Observed: no instructor data change.
+- Command: `git diff -- backend\requirements.txt frontend\package.json frontend\package-lock.json`.
+  - Observed: no dependency declaration or lockfile change.
+
+### Automated checks
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Observed: `15 passed, 2 warnings in 2.17s`. The warnings are the same upstream FastAPI/Starlette test-client deprecations recorded for Part 1.
+
+Frontend commands, run from `frontend/`:
+
+```powershell
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd .
+npm run build
+```
+
+Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8.3.0 transformed 12 modules and completed the production build in `247ms`.
+
+### Services and API
+
+- Ports 8000 and 5173 were free before service startup.
+- Backend command from `backend/`: `.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000`.
+- Frontend command from `frontend/`: `npm run dev -- --host 127.0.0.1 --port 5173`.
+- `GET http://127.0.0.1:8000/api/health` — expected and observed `{"status":"ok"}`.
+- `GET http://127.0.0.1:5173/api/hotels/search?name=Harbor` — expected and observed count `2`, trip IDs `T001` and `T009`.
+- `GET http://127.0.0.1:5173/api/hotels/search?name=Ocean%20Palace` — expected and observed count `0` with an empty results list.
+
+### Visible browser CRUD checks
+
+- Selected `Demo Traveler 6 (U006)`; expected an empty starter history and observed “Demo Traveler 6 has no bookings.”
+- Searched `Harbor`; expected two offered stays and observed a labeled table containing T001 and T009.
+- Created B007 from T001; expected a new unique confirmed booking and observed B007 in U006’s history. Refreshed the browser, reselected U006, and observed that B007 remained. Evidence: [`part-2-booking-created.png`](../screenshots/part-2-booking-created.png).
+- Cancelled B007; expected the row to remain with cancelled status and observed “B007 was cancelled and remains in history” plus the `cancelled` status. Evidence: [`part-2-booking-cancelled.png`](../screenshots/part-2-booking-cancelled.png).
+- Deleted the B007 test record; expected it to disappear and observed that U006 returned to no bookings.
+- Created B008 from T009 for restart verification; expected a new ID rather than reuse of B007 and observed B008 confirmed.
+
+### Restart persistence and one-time seed check
+
+- Stopped only the backend and frontend service sessions started for this check and confirmed both ports were released.
+- Restarted both services with the same commands, reloaded the browser, and selected U006.
+- Expected B008 to survive and observed one confirmed U006 history row for B008/T009. Evidence: [`part-2-booking-after-restart.png`](../screenshots/part-2-booking-after-restart.png).
+- SQLite query after restart observed table counts `{hotels: 8, trips: 12, users: 6, bookings: 7}`, `seeded=1`, `next_booking_number=9`, and B008 as `(B008, U006, T009, confirmed)`. The seven bookings equal the six starter rows minus deleted B007 plus retained B008; no starter rows were duplicated.
+- Searched `Ocean Palace` and observed the clear no-results message. Submitted an empty field and observed “Enter a hotel name to search.”
+- The visible in-app browser was narrower than the 720-pixel breakpoint; controls stacked correctly and both tables remained available through horizontal scrolling.
+- Browser console error query after all interactions returned an empty list.
+
+For final cleanup, port ownership was reconfirmed as task Uvicorn PID `33400` on 8000 and task Vite PID `34884` on 5173. Only their service sessions were stopped, and both ports were confirmed released. Manual Visual Studio Code review and merge/publication remain pending.
+
+## 2026-09-15 — Part 2 manual review approval
+
+Related prompt: [`09-part-2-review-merge-publication.md`](../prompts/09-part-2-review-merge-publication.md).
+
+The user confirmed that the manual Visual Studio Code review and browser demonstration of Part 2 were complete and approved the implementation on `feature/part-2-sqlite-crud`. The pre-commit checkpoint reconfirmed 15 passing backend tests, passing Oxlint and ESLint checks, and a passing production build before the reviewed feature commit.

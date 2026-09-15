@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 backend/.venv/
+backend/*.sqlite3
+backend/*.sqlite3-*
 
 # Frontend
 frontend/node_modules/

@@ -1,33 +1,34 @@
 # Expedia Lite
 
-Expedia Lite is a small Part 1 course project for searching fictional hotel stays. A Vue 3 frontend sends a hotel-name query to FastAPI. The Python backend reads the instructor-provided `hotels.csv` and `trips.csv`, joins them on `hotel_id`, and returns matching stays with dates and derived prices.
+Expedia Lite is a two-part course project built with Vue 3, FastAPI, and SQLite. Part 2 preserves the Part 1 hotel-name search and adds simulated booking, traveler booking history, cancellation, deletion, and persistent storage.
 
-Part 2 booking, history, SQLite, and CRUD behavior are intentionally not implemented.
+The application imports the instructor-provided hotel, trip, user, and booking CSV files into a local SQLite database on first use. That import happens only once. Later searches and booking changes read and write SQLite, so changes survive browser refreshes and application restarts without duplicating the starter records.
 
 ## Project structure
 
 ```text
-backend/app/           CSV search rules and FastAPI application
-backend/tests/         Data and API tests
+backend/app/           FastAPI routes, SQLite setup, search, and booking rules
+backend/tests/         Data, persistence, and API tests
 data/                  Unmodified instructor-provided data pack
 frontend/src/          Vue interface and API service
-docs/design.md         Responsibility and request-flow note
-docs/verification.md   Repeatable Part 1 checks
+docs/design.md         Responsibilities, schema, and request flows
+docs/verification.md   Repeatable Part 2 checks
 docs/evidence.md       Completed-check evidence
 handoffs/current.md    Current state and next task
 prompts/               Selected project instruction record
-report.md              Part 1 submission report
+screenshots/           Browser verification evidence
+report.md              Part 2 report draft
 ```
 
 Project-specific rules are in [`AGENTS.md`](AGENTS.md). The active continuation notes are in [`handoffs/current.md`](handoffs/current.md).
 
 ## Requirements
 
-- Python 3.10 or newer
+- Python 3.10 or newer with the standard-library `sqlite3` module
 - Node.js `^22.18.0 || >=24.12.0`
 - npm
 
-The initial verified environment used Python 3.14.7, Node.js 24.20.0, and npm 11.19.0.
+The verified environment uses Python 3.14.7, SQLite 3.50.4, Node.js 24.20.0, and npm 11.19.0. Part 2 required no new dependency declaration or installation.
 
 ## Setup
 
@@ -42,7 +43,7 @@ npm install
 cd ..
 ```
 
-Dependencies stay inside the project. Do not commit `backend/.venv`, `frontend/node_modules`, or `frontend/dist`.
+Dependencies stay inside the project. Do not commit `backend/.venv`, `frontend/node_modules`, `frontend/dist`, or `backend/expedia_lite.sqlite3`.
 
 ## Run the application
 
@@ -60,7 +61,9 @@ cd frontend
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Open `http://127.0.0.1:5173/`. Vite forwards `/api` requests to FastAPI on port 8000.
+Open `http://127.0.0.1:5173/`. Vite forwards `/api` requests to FastAPI on port 8000. The first search or booking-data request creates and seeds `backend/expedia_lite.sqlite3`; later starts reuse that database.
+
+The traveler selector represents fictional demo identities only. There is no authentication, payment, or real reservation system.
 
 ## API
 
@@ -68,12 +71,15 @@ Open `http://127.0.0.1:5173/`. Vite forwards `/api` requests to FastAPI on port 
 | --- | --- | --- |
 | `GET` | `/api/health` | Return `{"status":"ok"}`. |
 | `GET` | `/api/hotels/search?name=Harbor` | Search hotel names using case-insensitive partial matching. |
-
-A successful search returns the normalized query, result count, and joined hotel stays. A whitespace-only query returns HTTP 400. A valid query with no matches returns HTTP 200 with an empty `results` list.
+| `GET` | `/api/users` | List demo travelers. |
+| `GET` | `/api/bookings?user_id=U001` | Read one traveler’s booking history. |
+| `POST` | `/api/bookings` | Create a confirmed booking from `user_id` and `trip_id`. |
+| `PATCH` | `/api/bookings/{booking_id}/cancel` | Retain a booking and update its status to cancelled. |
+| `DELETE` | `/api/bookings/{booking_id}` | Permanently delete a test booking. |
 
 ## Verify
 
-Follow [`docs/verification.md`](docs/verification.md) for the full process. Core automated checks are:
+Follow [`docs/verification.md`](docs/verification.md) for automated, API, browser CRUD, restart-persistence, and cleanup checks. Core automated checks are:
 
 ```powershell
 cd backend
