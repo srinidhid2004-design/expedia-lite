@@ -15,3 +15,12 @@ Authorized checkpoint:
 - Verify the repository and all report links without authentication. Do not access or submit to the course site.
 
 Preserve the Part 1 implementation checkpoint `0c1666d2bb03fdefda55ccf3b905d80801d78d5f`. Never commit SQLite databases, environments, dependency directories, build output, caches, secrets, or temporary files. Do not change dependencies, instructor CSVs, or add behavior beyond Assignment 1 Part 2.
+
+## Recorded outcome
+
+- The reviewed feature commit already existed as `5b329d4984caa1348af39c20d79e077420493c2c` (`Complete Expedia Lite Part 2`).
+- The normal non-fast-forward merge commit already existed on `main` as `a98a9ccd1de2329d35b2924e2b1f121fe7359627` (`Merge Expedia Lite Part 2`).
+- Recovery resumed from those commits without recreating, amending, rebasing, squashing, or rewriting either checkpoint.
+- Final restart verification retained cancelled B007, kept deleted B008 absent, preserved one-time seed counts, and left `next_booking_number=9`.
+- Only the disposable verification services and database were cleaned up; the real database retained its baseline hash.
+- The final report uses immutable screenshot links tied to the Part 2 merge commit. Course-site submission remains a user action.

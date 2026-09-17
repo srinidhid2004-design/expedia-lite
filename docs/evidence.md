@@ -157,3 +157,55 @@ For final cleanup, port ownership was reconfirmed as task Uvicorn PID `33400` on
 Related prompt: [`09-part-2-review-merge-publication.md`](../prompts/09-part-2-review-merge-publication.md).
 
 The user confirmed that the manual Visual Studio Code review and browser demonstration of Part 2 were complete and approved the implementation on `feature/part-2-sqlite-crud`. The pre-commit checkpoint reconfirmed 15 passing backend tests, passing Oxlint and ESLint checks, and a passing production build before the reviewed feature commit.
+
+## 2026-09-17 — Part 2 merge and restart-recovery verification
+
+Related prompt: [`09-part-2-review-merge-publication.md`](../prompts/09-part-2-review-merge-publication.md).
+
+### Git checkpoints
+
+- Preserved Part 1 implementation: `0c1666d2bb03fdefda55ccf3b905d80801d78d5f`.
+- Reviewed Part 2 feature commit: `5b329d4984caa1348af39c20d79e077420493c2c` (`Complete Expedia Lite Part 2`).
+- Normal non-fast-forward Part 2 merge commit on `main`: `a98a9ccd1de2329d35b2924e2b1f121fe7359627` (`Merge Expedia Lite Part 2`).
+- The feature branch remains available. No amend, rebase, squash, force-push, remote change, or history rewrite occurred.
+
+### Post-merge automated checks
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Observed: `15 passed, 2 warnings in 2.63s`. The warnings are the previously recorded upstream FastAPI/Starlette test-client deprecations.
+
+Frontend commands, run from `frontend/`:
+
+```powershell
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd .
+npm run build
+```
+
+Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8.3.0 transformed 12 modules and completed the production build in `239ms`.
+
+### Disposable restart verification
+
+- Real database preserved at `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\expedia_lite.sqlite3` with baseline and final SHA-256 `E492632B5C26A5CF0A9EE1EE5E2D8C37108118EDA4B7C074A1EE3074B8F9E17B`.
+- Disposable database: `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\part2-final-verification.sqlite3`, ignored by `backend/*.sqlite3`.
+- Before the interruption, B007 had been created and cancelled, then the separate B008 record had been created and deleted through the frontend.
+- On recovery, a read-only SQLite query confirmed B007 as `(B007, U006, T001, cancelled)`, B008 absent, table counts `{hotels: 8, trips: 12, users: 6, bookings: 7}`, `seeded=1`, and `next_booking_number=9`.
+- Port 8000 was still owned by the paused disposable verification backend, PID `39028`, whose full command line identified the project virtual environment, disposable database, loopback host, and port. Port 5173 was free. The existing backend was recovered, and only the missing frontend was started with `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`; its listener was task-owned Vite PID `22580`.
+- The visible frontend was reloaded and U006 selected. Expected: B007 remains cancelled and B008 remains absent. Observed: the history showed exactly one row, cancelled B007/T001, and no B008 row.
+- A second read-only database query observed the same counts and metadata: 8 hotels, 12 trips, 6 users, 7 bookings, `seeded=1`, and `next_booking_number=9`.
+- Browser console errors after the restart workflow: none.
+- A first recovery query attempt had a PowerShell quoting error and exited with a Python `SyntaxError` before opening or changing the database; the corrected read-only query produced the results above.
+
+### Cleanup and publication record
+
+- The frontend session was stopped with Ctrl+C. Immediately before stopping the remaining backend, its command line was rechecked and proved it was PID `39028` from this project using `part2-final-verification.sqlite3` on port 8000; only that process was stopped.
+- Ports 8000 and 5173 were confirmed free.
+- The disposable database path was resolved and matched the exact expected path before that one file was removed. The real database remained present with its baseline hash.
+- Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite).
+- The report uses immutable merge-commit URLs for the three Part 2 screenshots and public `main` links for the current project records.
+- Course-site access and submission remain outside this checkpoint.
