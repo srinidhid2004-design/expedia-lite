@@ -4,11 +4,23 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.location_controller import (
+    GeoapifyConfigurationError,
+    GeoapifyRequestError,
+    ZipLocation,
+    ZipLookupUnresolvedError,
+)
 
 
 @pytest.fixture
-def client(tmp_path) -> Iterator[TestClient]:
-    with TestClient(create_app(tmp_path / "api.sqlite3")) as test_client:
+def client(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[TestClient]:
+    monkeypatch.delenv("GEOAPIFY_API_KEY", raising=False)
+    with TestClient(
+        create_app(tmp_path / "api.sqlite3", tmp_path / ".env")
+    ) as test_client:
         yield test_client
 
 
@@ -16,7 +28,197 @@ def test_health(client: TestClient) -> None:
     response = client.get("/api/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {
+        "status": "ok",
+        "geoapify_api_key": "key is not configured",
+    }
+
+
+def test_demo_zip_location_returns_controller_response(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.main.lookup_zip_location",
+        lambda postcode: ZipLocation(
+            postcode=postcode,
+            country_code="US",
+            latitude=40.7982,
+            longitude=-77.8599,
+            locality="University Park",
+        ),
+    )
+
+    response = client.get("/api/demo/zip-location")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "postcode": "16802",
+        "country_code": "US",
+        "latitude": 40.7982,
+        "longitude": -77.8599,
+        "locality": "University Park",
+    }
+
+
+def test_zip_location_returns_controller_response_for_16802(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested_postcodes: list[str] = []
+
+    def lookup(postcode: str) -> ZipLocation:
+        requested_postcodes.append(postcode)
+        return ZipLocation(
+            postcode=postcode,
+            country_code="US",
+            latitude=40.7982,
+            longitude=-77.8599,
+            locality="University Park",
+        )
+
+    monkeypatch.setattr("app.main.lookup_zip_location", lookup)
+
+    response = client.get(
+        "/api/zip-location",
+        params={"postcode": "16802"},
+    )
+
+    assert response.status_code == 200
+    assert requested_postcodes == ["16802"]
+    assert response.json() == {
+        "postcode": "16802",
+        "country_code": "US",
+        "latitude": 40.7982,
+        "longitude": -77.8599,
+        "locality": "University Park",
+    }
+
+
+def test_zip_location_preserves_leading_zero_as_a_string(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested_postcodes: list[str] = []
+
+    def lookup(postcode: str) -> ZipLocation:
+        requested_postcodes.append(postcode)
+        return ZipLocation(
+            postcode=postcode,
+            country_code="US",
+            latitude=41.0,
+            longitude=-72.0,
+        )
+
+    monkeypatch.setattr("app.main.lookup_zip_location", lookup)
+
+    response = client.get(
+        "/api/zip-location",
+        params={"postcode": "01234"},
+    )
+
+    assert response.status_code == 200
+    assert requested_postcodes == ["01234"]
+    assert response.json()["postcode"] == "01234"
+
+
+@pytest.mark.parametrize(
+    "postcode",
+    ["1680", "168020", "1680A", " 16802", "１２３４５"],
+)
+def test_zip_location_rejects_invalid_input(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    postcode: str,
+) -> None:
+    def unexpected_lookup(_postcode: str) -> ZipLocation:
+        pytest.fail("Invalid input must not call the location controller.")
+
+    monkeypatch.setattr("app.main.lookup_zip_location", unexpected_lookup)
+
+    response = client.get(
+        "/api/zip-location",
+        params={"postcode": postcode},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Enter exactly five digits for a U.S. ZIP code."
+    }
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code", "detail"),
+    [
+        (
+            ZipLookupUnresolvedError("private provider result"),
+            404,
+            "ZIP code 99999 could not be resolved.",
+        ),
+        (
+            GeoapifyRequestError("private provider request"),
+            502,
+            "The location provider request failed.",
+        ),
+    ],
+)
+def test_zip_location_maps_safe_lookup_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    status_code: int,
+    detail: str,
+) -> None:
+    def fail_lookup(_postcode: str) -> ZipLocation:
+        raise error
+
+    monkeypatch.setattr("app.main.lookup_zip_location", fail_lookup)
+
+    response = client.get(
+        "/api/zip-location",
+        params={"postcode": "99999"},
+    )
+
+    assert response.status_code == status_code
+    assert response.json() == {"detail": detail}
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code", "detail"),
+    [
+        (
+            GeoapifyConfigurationError("private configuration details"),
+            503,
+            "Geoapify is not configured.",
+        ),
+        (
+            ZipLookupUnresolvedError("private provider result"),
+            404,
+            "ZIP code 16802 could not be resolved.",
+        ),
+        (
+            GeoapifyRequestError("private provider request"),
+            502,
+            "The location provider request failed.",
+        ),
+    ],
+)
+def test_demo_zip_location_maps_safe_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    status_code: int,
+    detail: str,
+) -> None:
+    def fail_lookup(_postcode: str) -> ZipLocation:
+        raise error
+
+    monkeypatch.setattr("app.main.lookup_zip_location", fail_lookup)
+
+    response = client.get("/api/demo/zip-location")
+
+    assert response.status_code == status_code
+    assert response.json() == {"detail": detail}
 
 
 def test_search_returns_joined_stays(client: TestClient) -> None:

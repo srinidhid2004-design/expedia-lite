@@ -45,6 +45,12 @@ cd ..
 
 Dependencies stay inside the project. Do not commit `backend/.venv`, `frontend/node_modules`, `frontend/dist`, or `backend/expedia_lite.sqlite3`.
 
+### Backend configuration
+
+The backend configuration helper is `backend/app/config.py`. It explicitly loads the project-root `.env` file when the FastAPI application starts and checks whether `GEOAPIFY_API_KEY` contains a non-whitespace value. The key value is never returned by the health endpoint.
+
+Restart the backend after creating or editing `.env`; restarting the Vue frontend is not required for a backend configuration change.
+
 ## Run the application
 
 Start FastAPI from the project root:
@@ -69,7 +75,9 @@ The traveler selector represents fictional demo identities only. There is no aut
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/health` | Return `{"status":"ok"}`. |
+| `GET` | `/api/health` | Return application health and whether the Geoapify key is configured, without returning the key. |
+| `GET` | `/api/demo/zip-location` | Resolve the fixed classroom demonstration ZIP `16802`. |
+| `GET` | `/api/zip-location?postcode=16802` | Validate and resolve one user-entered five-digit U.S. ZIP code. |
 | `GET` | `/api/hotels/search?name=Harbor` | Search hotel names using case-insensitive partial matching. |
 | `GET` | `/api/users` | List demo travelers. |
 | `GET` | `/api/bookings?user_id=U001` | Read one traveler’s booking history. |

@@ -14,6 +14,15 @@ export function findHotelStays(hotelName) {
   return request(`/api/hotels/search?${params}`)
 }
 
+export function getDemoZipLocation() {
+  return request('/api/demo/zip-location')
+}
+
+export function getZipLocation(postcode) {
+  const params = new URLSearchParams({ postcode })
+  return request(`/api/zip-location?${params}`)
+}
+
 export function getTravelers() {
   return request('/api/users')
 }

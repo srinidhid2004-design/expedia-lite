@@ -26,3 +26,11 @@ Hotel search travels from the Vue form through Vite’s `/api` proxy to FastAPI,
 Booking creation sends the selected `user_id` and offered `trip_id` to FastAPI. The booking layer validates both references, allocates a new ID in a transaction, inserts a confirmed row, and returns the joined history record. History reads join bookings to travelers, stays, and hotels. Cancellation updates only the status; deletion removes the selected booking.
 
 The generated database is local runtime state and is ignored by Git. Instructor CSV files remain unchanged under `data/` and are not reloaded after a database has been marked as seeded. Authentication, payments, taxes, fees, and real inventory remain outside the assignment.
+
+## ZIP geocoding controller
+
+`backend/app/location_controller.py` contains a backend-only ZIP lookup controller. `lookup_zip_location(postcode)` reads the Geoapify key through `backend/app/config.py` and calls Geoapify forward geocoding with the requested postcode, `type=postcode`, `filter=countrycode:us`, `format=json`, and a finite timeout. The thin `GET /api/demo/zip-location` route preserves the fixed demonstration postcode `16802`. `GET /api/zip-location?postcode=...` validates exactly five ASCII digits before passing the string to the same controller, so leading zeros are preserved. The Vue ZIP form calls only this local route through Vite's `/api` proxy.
+
+The controller returns a dedicated `ZipLocation` containing the matching postcode, normalized `US` country code, latitude, longitude, and an optional locality. It is intentionally separate from `HotelStay`, whose required pricing and stay fields do not describe a geocoded location.
+
+Only a result with the exact requested U.S. postcode and finite, in-range coordinates is accepted. An empty or mismatched result raises `ZipLookupUnresolvedError`; missing configuration raises `GeoapifyConfigurationError`; transport failures, non-success responses, and malformed provider payloads raise `GeoapifyRequestError`. The routes map those cases to safe HTTP 404, 503, and 502 responses. Provider errors use fixed messages so credentials, full request URLs, and raw exception details are not returned.

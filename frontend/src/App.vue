@@ -8,6 +8,7 @@ import {
   findHotelStays,
   getBookingHistory,
   getTravelers,
+  getZipLocation,
 } from './services/travelApi'
 
 const hotelName = ref('')
@@ -16,6 +17,12 @@ const searchedName = ref('')
 const hasSearched = ref(false)
 const isSearching = ref(false)
 const searchError = ref('')
+
+const zipCode = ref('16802')
+const zipLocation = ref(null)
+const isZipLookupLoading = ref(false)
+const zipValidationError = ref('')
+const zipLookupError = ref('')
 
 const travelers = ref([])
 const selectedUserId = ref('')
@@ -86,6 +93,29 @@ async function search() {
     searchError.value = error.message
   } finally {
     isSearching.value = false
+  }
+}
+
+async function lookupZip() {
+  if (isZipLookupLoading.value) return
+
+  const postcode = zipCode.value
+  zipLocation.value = null
+  zipValidationError.value = ''
+  zipLookupError.value = ''
+
+  if (!/^[0-9]{5}$/.test(postcode)) {
+    zipValidationError.value = 'Enter exactly five digits for a U.S. ZIP code.'
+    return
+  }
+
+  isZipLookupLoading.value = true
+  try {
+    zipLocation.value = await getZipLocation(postcode)
+  } catch (error) {
+    zipLookupError.value = error.message
+  } finally {
+    isZipLookupLoading.value = false
   }
 }
 
@@ -218,6 +248,77 @@ onMounted(loadTravelers)
           </div>
           <p class="search-hint">Partial names work, and capitalization does not matter.</p>
         </form>
+      </section>
+
+      <section class="zip-demo" aria-labelledby="zip-demo-title">
+        <div class="zip-demo-heading">
+          <p class="eyebrow">Location service</p>
+          <h2 id="zip-demo-title">ZIP lookup demonstration</h2>
+          <p class="section-copy">
+            Resolve a five-digit U.S. ZIP through the backend. The classroom
+            demonstration ZIP is 16802.
+          </p>
+        </div>
+
+        <form class="zip-demo-action" aria-label="ZIP location lookup" @submit.prevent="lookupZip">
+          <div class="zip-field">
+            <label for="zip-code">U.S. ZIP code</label>
+            <input
+              id="zip-code"
+              v-model="zipCode"
+              name="zip-code"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              placeholder="16802"
+              aria-describedby="zip-help zip-status"
+              :aria-invalid="Boolean(zipValidationError)"
+            >
+            <p id="zip-help" class="zip-help">
+              Enter exactly five digits. Leading zeros are preserved.
+            </p>
+          </div>
+          <button type="submit" :disabled="isZipLookupLoading">
+            {{ isZipLookupLoading ? 'Looking up…' : 'Look up ZIP' }}
+          </button>
+          <p
+            v-if="isZipLookupLoading || zipValidationError || zipLookupError"
+            id="zip-status"
+            class="zip-feedback"
+            :class="{ 'zip-error': zipValidationError || zipLookupError }"
+            role="status"
+            aria-live="polite"
+          >
+            {{
+              isZipLookupLoading
+                ? `Looking up ZIP ${zipCode}…`
+                : zipValidationError || zipLookupError
+            }}
+          </p>
+        </form>
+
+        <div v-if="zipLocation" class="zip-table-wrap">
+          <table class="zip-result-table" aria-label="ZIP location result">
+            <thead>
+              <tr>
+                <th scope="col">ZIP code</th>
+                <th scope="col">Locality</th>
+                <th scope="col">Country</th>
+                <th scope="col">Latitude</th>
+                <th scope="col">Longitude</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ zipLocation.postcode }}</td>
+                <td>{{ zipLocation.locality || 'Not available' }}</td>
+                <td>{{ zipLocation.country_code }}</td>
+                <td>{{ zipLocation.latitude }}</td>
+                <td>{{ zipLocation.longitude }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section class="traveler-panel" aria-labelledby="traveler-title">

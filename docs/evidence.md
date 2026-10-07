@@ -209,3 +209,51 @@ Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8
 - Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite).
 - The report uses immutable merge-commit URLs for the three Part 2 screenshots and public `main` links for the current project records.
 - Course-site access and submission remain outside this checkpoint.
+
+## 2026-10-07 — First public API activity
+
+Related prompt: [`10-first-public-api-activity.md`](../prompts/10-first-public-api-activity.md).
+
+The user completed a visible browser review and approved the first-public-API milestone before it was committed on `feature/assignment-2-part-1`. This checkpoint records only the completed Geoapify ZIP-location activity; Assignment 2 hotel discovery, map, shortlist, and chatbot behavior have not been added by this milestone.
+
+### Configuration and security
+
+- The project-root `.env` is ignored by Git and is not tracked. A safe name-only check confirmed one `GEOAPIFY_API_KEY` setting without displaying its value or any `.env` contents.
+- `backend/app/config.py` loads the project-root `.env` through an explicit path. `GET /api/health` reports only `key is configured` or `key is not configured`.
+- Geoapify requests and the credential remain in the backend. A comparison against the configured value found no credential match in the intended tracked or untracked project files, and the frontend source contains no API key or `GEOAPIFY_API_KEY` reference.
+
+### Implemented activity behavior
+
+- `backend/app/location_controller.py` resolves a supplied ZIP through Geoapify forward geocoding, requires an exact matching U.S. postcode with valid coordinates, and distinguishes missing configuration, an unresolved ZIP, and provider failure without returning a provider URL, credential, or raw exception.
+- The fixed classroom route `GET /api/demo/zip-location` continues to use `16802`.
+- `GET /api/zip-location?postcode=...` accepts the ZIP as a string, requires exactly five ASCII digits, and therefore preserves leading zeros.
+- The Vue panel provides a labeled text input, numeric keyboard hint, five-character limit, accessible instructions, loading and error feedback, and a labeled result table. It calls only the local `/api` route through the existing Vite proxy.
+
+### Automated verification
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Observed: `36 passed, 2 warnings in 2.05s`. The warnings are the previously documented upstream FastAPI/Starlette test-client deprecations. The suite includes mocked success for `16802`, leading-zero preservation, invalid input, mismatched or unresolved responses, missing configuration, and sanitized provider failure behavior.
+
+Frontend commands, run from `frontend/`:
+
+```powershell
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd .
+npm run build
+```
+
+Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8.3.0 transformed 12 modules and completed the production build in `313ms`.
+
+### Live API and browser verification
+
+- `GET /api/health` returned application status plus `key is configured`, without returning the key.
+- A live request to `GET /api/zip-location?postcode=16802` returned the sanitized location `16802`, `State College`, `US`, latitude `40.803167822`, and longitude `-77.861384958` on October 7, 2026.
+- In the visible frontend, entering and submitting `16802` displayed those same values in the labeled ZIP code, locality, country, latitude, and longitude table. The input, submit button, and complete result table were arranged together for review.
+- The existing hotel-name search still returned Harbor stays `T001` and `T009`.
+- The browser console contained no application warnings or errors.
+- The user subsequently confirmed that the ZIP-input and result-table milestone passed manual review.

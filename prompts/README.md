@@ -9,3 +9,4 @@
 7. [`07-github-publication.md`](07-github-publication.md)
 8. [`08-part-2-implementation.md`](08-part-2-implementation.md)
 9. [`09-part-2-review-merge-publication.md`](09-part-2-review-merge-publication.md)
+10. [`10-first-public-api-activity.md`](10-first-public-api-activity.md)
