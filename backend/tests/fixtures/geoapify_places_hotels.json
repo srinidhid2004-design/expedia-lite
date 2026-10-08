@@ -1,0 +1,68 @@
+{
+  "fixture": {
+    "label": "Credential-free Geoapify Places hotel response fixture",
+    "purpose": "Repeatable Assignment 2 Part 1 normalization tests",
+    "synthetic": true,
+    "contains_credentials": false
+  },
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "place_id": "fixture-hotel-complete",
+        "name": "Fixture Hotel One",
+        "formatted": "100 Fixture Avenue, State College, PA 16801, United States of America",
+        "lat": 40.8001,
+        "lon": -77.8602,
+        "distance": 487.4,
+        "categories": [
+          "accommodation",
+          "accommodation.hotel"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.8602,
+          40.8001
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "place_id": "fixture-hotel-missing-optional-fields",
+        "lat": 40.8075,
+        "lon": -77.851,
+        "categories": [
+          "accommodation.hotel"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.851,
+          40.8075
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "place_id": "",
+        "name": "Invalid fixture record",
+        "formatted": "This record is omitted because it has no identifier",
+        "lat": 40.81,
+        "lon": -77.85
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.85,
+          40.81
+        ]
+      }
+    }
+  ]
+}

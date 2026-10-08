@@ -1,36 +1,81 @@
-# Part 2 design
+# Expedia Lite design
 
-Expedia Lite separates presentation, HTTP handling, domain operations, and persistence:
+## Responsibility boundaries
 
-- **Vue frontend:** searches by hotel name, selects a fictional demo traveler, creates a booking from an offered stay, displays that traveler’s history, cancels a booking while retaining it, and permanently deletes a test booking. Status and error feedback are announced in the interface.
-- **Frontend API service:** owns all `/api` requests so presentation code does not assemble HTTP behavior.
-- **FastAPI boundary:** validates request shape and query input, maps domain validation to HTTP 400 or 404 responses, and returns a generic HTTP 500 response when storage cannot be used.
-- **Python search and booking layers:** map SQLite rows to typed records, calculate stay duration and price, search hotel names, allocate booking IDs, and implement create/read/cancel/delete rules.
-- **SQLite initialization layer:** creates the schema, imports all four instructor CSVs exactly once, and stores both a seeded marker and the next booking number in `app_metadata`.
+Expedia Lite uses an MVC-style separation with an explicit provider boundary:
 
-## Data model
+| Responsibility | Project location | Assignment 2 Part 1 role |
+| --- | --- | --- |
+| Model and provider access | `backend/app/config.py`, `location_controller.py`, `hotel_discovery.py` | Load backend-only configuration, resolve an exact U.S. postcode, call Geoapify Places, validate provider data, and return typed provider-independent records. |
+| HTTP controller | `backend/app/main.py` | Validate five ASCII digits, invoke the discovery controller, and map known outcomes to safe HTTP responses under `/api`. |
+| Browser request service | `frontend/src/services/travelApi.js` | Send the entered postcode only to the local FastAPI route through Vite’s `/api` proxy. |
+| View and interaction state | `frontend/src/App.vue` | Own the form, feedback states, sanitized search-center table, hotel table, and one shared `selectedPlaceId`. |
+| Focused map view | `frontend/src/components/HotelDiscoveryMap.vue` | Render the accepted center, 5 km circle, normalized hotel markers, popups, synchronized selection, and attribution; clean up Leaflet layers on replacement or destruction. |
 
-SQLite stores four domain tables whose text IDs and relationships mirror the supplied CSV files:
+The browser never calls Geoapify and never receives the API key. The original Assignment 1 SQLite search and booking layers remain separate and operational.
 
-- `hotels(hotel_id, hotel_name, city, state, nightly_rate_usd)`
-- `trips(trip_id, hotel_id, trip_name, check_in, check_out)`
-- `users(user_id, display_name)`
-- `bookings(booking_id, user_id, trip_id, booked_on, status)`
+## Assignment 2 Part 1 data flow
 
-Foreign keys enforce the supplied relationships. Booking status is limited to `confirmed` or `cancelled`. `app_metadata` records `seeded=1` and a monotonically increasing booking-number counter, so a deleted ID is not reused.
+```text
+Five-digit ZIP string
+        ↓
+Vue validation and /api proxy
+        ↓
+GET /api/hotels/nearby?postcode=...
+        ↓
+Exact U.S. postcode geocoding
+        ↓
+Verified postcode center (latitude/longitude)
+        ↓
+Geoapify Places: accommodation.hotel
+filter=circle:{longitude},{latitude},5000
+bias=proximity:{longitude},{latitude}
+limit=20
+        ↓
+Typed normalization and safe error mapping
+        ↓
+Sanitized FastAPI response
+        ↓
+One Vue hotel collection → table + Leaflet markers
+        ↓
+One shared provider place ID ↔ synchronized selection
+```
 
-## Request flows
+The postcode remains a string from input through the controller, preserving leading zeros. A geocoding result is accepted only when it identifies the exact requested U.S. postcode and supplies finite, in-range coordinates. The verified longitude and latitude—not an unverified user-entered point—become the center of the strict 5,000-meter Places circle. A proximity bias orders results but does not replace the circle boundary.
 
-Hotel search travels from the Vue form through Vite’s `/api` proxy to FastAPI, then through the search layer to a SQLite join of `trips` and `hotels`. The response includes dates, calculated nights, nightly rate, and estimated stay price.
+## Provider-independent contract
 
-Booking creation sends the selected `user_id` and offered `trip_id` to FastAPI. The booking layer validates both references, allocates a new ID in a transaction, inserts a confirmed row, and returns the joined history record. History reads join bookings to travelers, stays, and hotels. Cancellation updates only the status; deletion removes the selected booking.
+The nearby-hotel response contains:
 
-The generated database is local runtime state and is ignored by Git. Instructor CSV files remain unchanged under `data/` and are not reloaded after a database has been marked as seeded. Authentication, payments, taxes, fees, and real inventory remain outside the assignment.
+- `search_center`: postcode, normalized country code, optional locality, latitude, and longitude;
+- `hotels`: provider place identifier, optional name, optional formatted address, latitude, longitude, and optional valid distance;
+- `search_radius_meters`: `5000`;
+- `result_limit`: `20`;
+- the usable count and any omitted-provider-record count.
 
-## ZIP geocoding controller
+Every map hotel must have a nonblank provider place identifier and valid coordinates. Missing names are displayed as `Name unavailable`; missing addresses are displayed as `Address not provided`. Invalid or ambiguous records are omitted rather than repaired with invented data. No provider result is presented as proof of price, rating, rooms, availability, or bookability. One result page of up to 20 records is a bounded demonstration, not an exhaustive inventory.
 
-`backend/app/location_controller.py` contains a backend-only ZIP lookup controller. `lookup_zip_location(postcode)` reads the Geoapify key through `backend/app/config.py` and calls Geoapify forward geocoding with the requested postcode, `type=postcode`, `filter=countrycode:us`, `format=json`, and a finite timeout. The thin `GET /api/demo/zip-location` route preserves the fixed demonstration postcode `16802`. `GET /api/zip-location?postcode=...` validates exactly five ASCII digits before passing the string to the same controller, so leading zeros are preserved. The Vue ZIP form calls only this local route through Vite's `/api` proxy.
+## Response states
 
-The controller returns a dedicated `ZipLocation` containing the matching postcode, normalized `US` country code, latitude, longitude, and an optional locality. It is intentionally separate from `HotelStay`, whose required pricing and stay fields do not describe a geocoded location.
+- **Invalid input:** Vue and FastAPI require exactly five ASCII digits; no provider search is treated as successful.
+- **Unresolved ZIP:** no exact U.S. postcode was accepted, so no substitute hotel search occurs.
+- **Missing configuration:** the backend reports configuration is unavailable without revealing the key.
+- **No nearby hotels:** a valid provider response with zero usable hotels is HTTP 200 and keeps the accepted center visible.
+- **Provider failure or timeout:** a safe service error is returned without a raw exception or credential-bearing URL.
+- **Rate or quota failure:** HTTP 429 receives distinct retry-later feedback.
+- **Malformed response:** invalid provider structure is not misreported as a legitimate empty result.
+- **Success:** the center and one normalized collection are returned to both list and map.
 
-Only a result with the exact requested U.S. postcode and finite, in-range coordinates is accepted. An empty or mismatched result raises `ZipLookupUnresolvedError`; missing configuration raises `GeoapifyConfigurationError`; transport failures, non-success responses, and malformed provider payloads raise `GeoapifyRequestError`. The routes map those cases to safe HTTP 404, 503, and 502 responses. Provider errors use fixed messages so credentials, full request URLs, and raw exception details are not returned.
+## List and map synchronization
+
+`App.vue` owns the only hotel-selection state: `selectedPlaceId`. A successful search replaces stale results and selects the first usable hotel when present. A list control updates that ID; the map component highlights and opens the matching marker. A marker activation emits the same provider ID; the matching row becomes selected and is scrolled into view. Keyboard-operable list controls and Leaflet markers use the same path.
+
+The search-center marker and translucent 5 km circle explain query origin and radius but are not hotel results. A new search or empty result clears old rows, markers, and selection. At narrow widths the list and map stack while the table keeps its own horizontal scrolling area.
+
+OpenStreetMap Standard tiles are used only for this low-volume classroom demonstration. Leaflet’s attribution control stays enabled and visibly includes `© OpenStreetMap contributors`; a separate `Powered by Geoapify` link identifies the geocoding and Places source.
+
+## Preserved Assignment 1 model
+
+SQLite stores the instructor-supplied hotel, trip, user, and booking records with their text IDs. `app_metadata` records the one-time seed marker and monotonically increasing booking counter. Assignment 1 hotel search and booking CRUD continue to use SQLite after the first seed. Cancellation retains a row with `cancelled` status; deletion removes the selected booking without allowing its ID to be reused.
+
+The local database is ignored runtime state. Instructor CSV files remain unchanged. Authentication, payment processing, taxes, fees, live room inventory, shortlist persistence, and chatbot/RAG behavior are outside Assignment 2 Part 1.

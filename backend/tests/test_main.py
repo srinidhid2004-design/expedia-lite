@@ -4,6 +4,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.hotel_discovery import (
+    DiscoveredHotel,
+    HotelDiscoveryProviderError,
+    HotelDiscoveryRateLimitError,
+    HotelDiscoveryResult,
+)
 from app.location_controller import (
     GeoapifyConfigurationError,
     GeoapifyRequestError,
@@ -216,6 +222,177 @@ def test_demo_zip_location_maps_safe_errors(
     monkeypatch.setattr("app.main.lookup_zip_location", fail_lookup)
 
     response = client.get("/api/demo/zip-location")
+
+    assert response.status_code == status_code
+    assert response.json() == {"detail": detail}
+
+
+def test_nearby_hotels_returns_normalized_discovery_result(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested_postcodes: list[str] = []
+
+    def discover(postcode: str) -> HotelDiscoveryResult:
+        requested_postcodes.append(postcode)
+        return HotelDiscoveryResult(
+            search_center=ZipLocation(
+                postcode=postcode,
+                country_code="US",
+                latitude=41.0,
+                longitude=-72.0,
+                locality="Example Town",
+            ),
+            hotels=(
+                DiscoveredHotel(
+                    provider_place_id="provider-place-1",
+                    name="Example Hotel",
+                    formatted_address="1 Example Street",
+                    latitude=41.001,
+                    longitude=-72.001,
+                    distance_meters=150.0,
+                ),
+            ),
+        )
+
+    monkeypatch.setattr("app.main.discover_hotels_by_zip", discover)
+
+    response = client.get(
+        "/api/hotels/nearby",
+        params={"postcode": "01234"},
+    )
+
+    assert response.status_code == 200
+    assert requested_postcodes == ["01234"]
+    assert response.json() == {
+        "search_center": {
+            "postcode": "01234",
+            "country_code": "US",
+            "latitude": 41.0,
+            "longitude": -72.0,
+            "locality": "Example Town",
+        },
+        "search_radius_meters": 5000,
+        "result_limit": 20,
+        "count": 1,
+        "omitted_provider_records": 0,
+        "hotels": [
+            {
+                "provider_place_id": "provider-place-1",
+                "name": "Example Hotel",
+                "formatted_address": "1 Example Street",
+                "latitude": 41.001,
+                "longitude": -72.001,
+                "distance_meters": 150.0,
+            }
+        ],
+    }
+
+
+def test_nearby_hotels_returns_successful_empty_result(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.main.discover_hotels_by_zip",
+        lambda postcode: HotelDiscoveryResult(
+            search_center=ZipLocation(
+                postcode=postcode,
+                country_code="US",
+                latitude=40.7982,
+                longitude=-77.8599,
+            ),
+            hotels=(),
+        ),
+    )
+
+    response = client.get(
+        "/api/hotels/nearby",
+        params={"postcode": "16802"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 0
+    assert response.json()["hotels"] == []
+
+
+@pytest.mark.parametrize(
+    "postcode",
+    ["1680", "168020", "1680A", " 16802", "１２３４５"],
+)
+def test_nearby_hotels_rejects_invalid_input_without_discovery(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    postcode: str,
+) -> None:
+    def unexpected_discovery(_postcode: str) -> HotelDiscoveryResult:
+        pytest.fail("Invalid input must not call hotel discovery.")
+
+    monkeypatch.setattr(
+        "app.main.discover_hotels_by_zip",
+        unexpected_discovery,
+    )
+
+    response = client.get(
+        "/api/hotels/nearby",
+        params={"postcode": postcode},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Enter exactly five digits for a U.S. ZIP code."
+    }
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code", "detail"),
+    [
+        (
+            GeoapifyConfigurationError("private configuration details"),
+            503,
+            "Geoapify is not configured.",
+        ),
+        (
+            ZipLookupUnresolvedError("private provider result"),
+            404,
+            "ZIP code 99999 could not be resolved.",
+        ),
+        (
+            GeoapifyRequestError("private location request"),
+            502,
+            "The hotel discovery provider request failed.",
+        ),
+        (
+            HotelDiscoveryProviderError("private hotel request"),
+            502,
+            "The hotel discovery provider request failed.",
+        ),
+        (
+            HotelDiscoveryRateLimitError("private quota details"),
+            429,
+            (
+                "The hotel provider rate or quota limit was reached. "
+                "Please try again later."
+            ),
+        ),
+    ],
+)
+def test_nearby_hotels_maps_safe_discovery_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    status_code: int,
+    detail: str,
+) -> None:
+    def fail_discovery(_postcode: str) -> HotelDiscoveryResult:
+        raise error
+
+    monkeypatch.setattr("app.main.discover_hotels_by_zip", fail_discovery)
+
+    response = client.get(
+        "/api/hotels/nearby",
+        params={"postcode": "99999"},
+    )
 
     assert response.status_code == status_code
     assert response.json() == {"detail": detail}

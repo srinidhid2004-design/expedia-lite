@@ -1,38 +1,41 @@
 # Expedia Lite
 
-Expedia Lite is a two-part course project built with Vue 3, FastAPI, and SQLite. Part 2 preserves the Part 1 hotel-name search and adds simulated booking, traveler booking history, cancellation, deletion, and persistent storage.
+Expedia Lite is a Vue 3, FastAPI, and SQLite course project. The preserved Assignment 1 application searches instructor-provided hotel stays and supports simulated booking history, cancellation, deletion, and one-time SQLite seeding. Assignment 2 Part 1 adds a backend-only Geoapify workflow that resolves an exact five-digit U.S. ZIP code, requests a bounded page of hotels inside a 5 km circle, and presents the same normalized results in a selectable list and Leaflet map.
 
-The application imports the instructor-provided hotel, trip, user, and booking CSV files into a local SQLite database on first use. That import happens only once. Later searches and booking changes read and write SQLite, so changes survive browser refreshes and application restarts without duplicating the starter records.
+Geoapify results are discovery information only. They do not establish price, rating, room availability, bookability, or an exhaustive hotel inventory.
 
 ## Project structure
 
 ```text
-backend/app/           FastAPI routes, SQLite setup, search, and booking rules
-backend/tests/         Data, persistence, and API tests
-data/                  Unmodified instructor-provided data pack
-frontend/src/          Vue interface and API service
-docs/design.md         Responsibilities, schema, and request flows
-docs/verification.md   Repeatable Part 2 checks
-docs/evidence.md       Completed-check evidence
-handoffs/current.md    Current state and next task
-prompts/               Selected project instruction record
-screenshots/           Browser verification evidence
-report.md              Part 2 report draft
+backend/app/                           FastAPI, SQLite, geocoding, and discovery logic
+backend/tests/                         Mocked provider, route, persistence, and API tests
+data/                                  Unmodified instructor-provided data pack
+frontend/src/                          Vue interface, API service, and Leaflet component
+docs/assignment-2-part-1-research.md   Primary-source research and decisions
+docs/assignment-2-part-1-mockup.svg    Approved early annotated wireframe
+docs/design.md                         MVC responsibilities and request flows
+docs/verification.md                   Repeatable Assignment 2 Part 1 checks
+docs/evidence.md                       Expected-versus-observed evidence
+handoffs/current.md                    Current state, limitations, and next task
+prompts/                               Selected project instruction records
+screenshots/                           Credential-free browser evidence
+report.md                              Assignment 2 Part 1 submission report
 ```
 
-Project-specific rules are in [`AGENTS.md`](AGENTS.md). The active continuation notes are in [`handoffs/current.md`](handoffs/current.md).
+Project rules are in [`AGENTS.md`](AGENTS.md). The active continuation notes are in [`handoffs/current.md`](handoffs/current.md).
 
 ## Requirements
 
-- Python 3.10 or newer with the standard-library `sqlite3` module
+- Python 3.10 or newer
 - Node.js `^22.18.0 || >=24.12.0`
 - npm
+- A Geoapify API key for live ZIP and hotel discovery
 
-The verified environment uses Python 3.14.7, SQLite 3.50.4, Node.js 24.20.0, and npm 11.19.0. Part 2 required no new dependency declaration or installation.
+The verified environment used Python 3.14.7, SQLite 3.50.4, Node.js 24.20.0, npm 11.19.0, and Leaflet 1.9.4. Python dependencies are declared in `backend/requirements.txt`; frontend dependencies are declared and locked in `frontend/package.json` and `frontend/package-lock.json`.
 
 ## Setup
 
-Run these commands in PowerShell from the project root.
+Run these commands in PowerShell from the project root:
 
 ```powershell
 python -m venv backend/.venv
@@ -43,13 +46,19 @@ npm install
 cd ..
 ```
 
-Dependencies stay inside the project. Do not commit `backend/.venv`, `frontend/node_modules`, `frontend/dist`, or `backend/expedia_lite.sqlite3`.
+Dependencies remain inside the project. Do not commit `backend/.venv`, `frontend/node_modules`, `frontend/dist`, generated SQLite databases, caches, or environment files.
 
-### Backend configuration
+### Safe backend configuration
 
-The backend configuration helper is `backend/app/config.py`. It explicitly loads the project-root `.env` file when the FastAPI application starts and checks whether `GEOAPIFY_API_KEY` contains a non-whitespace value. The key value is never returned by the health endpoint.
+Create a project-root `.env` file beside `backend/` and `frontend/`:
 
-Restart the backend after creating or editing `.env`; restarting the Vue frontend is not required for a backend configuration change.
+```dotenv
+GEOAPIFY_API_KEY=your-key-here
+```
+
+The checked-in `.gitignore` excludes `.env` and `.env.*` while allowing a future key-free `.env.example`. Never put the key in Vue source, a `VITE_` variable, screenshots, logs, test fixtures, documentation, or Git.
+
+`backend/app/config.py` loads the project-root `.env` through an explicit path. `GET /api/health` reports only whether the key is configured; it never returns the value. Restart FastAPI after creating or editing `.env`. The Vue development server does not need a restart for a backend-only configuration change.
 
 ## Run the application
 
@@ -67,27 +76,42 @@ cd frontend
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Open `http://127.0.0.1:5173/`. Vite forwards `/api` requests to FastAPI on port 8000. The first search or booking-data request creates and seeds `backend/expedia_lite.sqlite3`; later starts reuse that database.
+Open `http://127.0.0.1:5173/`. The FastAPI root at `http://127.0.0.1:8000/` has no application page; an HTTP 404 there is expected. Use `http://127.0.0.1:8000/api/health` for backend health. Vite forwards browser requests under `/api` to FastAPI on port 8000.
 
-The traveler selector represents fictional demo identities only. There is no authentication, payment, or real reservation system.
+The first Assignment 1 data request creates and seeds `backend/expedia_lite.sqlite3`; later starts reuse it. The traveler selector represents fictional demo identities only. There is no authentication, payment, or real reservation system.
 
-## API
+## Hotel discovery and map
+
+Enter exactly five digits in the nearby-hotel form. The ZIP remains a string so leading zeros survive validation. The backend:
+
+1. resolves only the exact requested U.S. postcode through Geoapify geocoding;
+2. uses the returned longitude and latitude as the center of a 5,000-meter Geoapify Places circle;
+3. requests category `accommodation.hotel` with a proximity bias and limit of 20;
+4. normalizes only usable provider IDs, coordinates, optional names, optional addresses, and valid distances; and
+5. returns a sanitized search center and bounded hotel collection to Vue.
+
+Vue renders one result collection in both the table and the Leaflet map. A shared provider place ID synchronizes list and marker selection in both directions. The search center and 5 km circle are visually distinct from hotel markers. Missing names appear as `Name unavailable`; missing addresses appear as `Address not provided`. OpenStreetMap Standard tiles are used for the low-volume classroom demonstration, with Leaflet and `© OpenStreetMap contributors` attribution kept visible. Geoapify attribution appears beside the result summary.
+
+## API summary
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/health` | Return application health and whether the Geoapify key is configured, without returning the key. |
-| `GET` | `/api/demo/zip-location` | Resolve the fixed classroom demonstration ZIP `16802`. |
-| `GET` | `/api/zip-location?postcode=16802` | Validate and resolve one user-entered five-digit U.S. ZIP code. |
-| `GET` | `/api/hotels/search?name=Harbor` | Search hotel names using case-insensitive partial matching. |
-| `GET` | `/api/users` | List demo travelers. |
+| `GET` | `/api/health` | Return application health and key-configuration status without returning the key. |
+| `GET` | `/api/demo/zip-location` | Preserve the fixed classroom demonstration for ZIP `16802`. |
+| `GET` | `/api/zip-location?postcode=16802` | Validate and resolve one exact five-digit U.S. ZIP string. |
+| `GET` | `/api/hotels/nearby?postcode=16802` | Return the verified center and up to 20 normalized hotels within 5 km. |
+| `GET` | `/api/hotels/search?name=Harbor` | Preserve the case-insensitive Assignment 1 hotel-name search. |
+| `GET` | `/api/users` | List fictional demo travelers. |
 | `GET` | `/api/bookings?user_id=U001` | Read one traveler’s booking history. |
-| `POST` | `/api/bookings` | Create a confirmed booking from `user_id` and `trip_id`. |
-| `PATCH` | `/api/bookings/{booking_id}/cancel` | Retain a booking and update its status to cancelled. |
+| `POST` | `/api/bookings` | Create a simulated confirmed booking. |
+| `PATCH` | `/api/bookings/{booking_id}/cancel` | Retain a booking and mark it cancelled. |
 | `DELETE` | `/api/bookings/{booking_id}` | Permanently delete a test booking. |
 
-## Verify
+Invalid ZIP input, unresolved ZIPs, missing configuration, provider failures, malformed responses, rate/quota failures, and successful zero-hotel responses remain distinct. Safe responses do not expose provider URLs, raw exceptions, or credentials.
 
-Follow [`docs/verification.md`](docs/verification.md) for automated, API, browser CRUD, restart-persistence, and cleanup checks. Core automated checks are:
+## Checks
+
+Follow [`docs/verification.md`](docs/verification.md) for the complete repeatable workflow. Core checks are:
 
 ```powershell
 cd backend
@@ -95,6 +119,11 @@ cd backend
 
 cd ..\frontend
 .\node_modules\.bin\oxlint.cmd .
-.\node_modules\.bin\eslint.cmd .
+.\node_modules\.bin\eslint.cmd . --no-cache
 npm run build
+
+cd ..
+git diff --check
 ```
+
+The final recorded Assignment 2 Part 1 run passed 57 backend tests, a focused 9-test mocked discovery suite, Oxlint, ESLint, the production build, and the whitespace check. See [`docs/evidence.md`](docs/evidence.md) for live-versus-mocked labels, observed values, browser checks, and limitations.

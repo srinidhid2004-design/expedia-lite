@@ -23,6 +23,11 @@ export function getZipLocation(postcode) {
   return request(`/api/zip-location?${params}`)
 }
 
+export function findNearbyHotels(postcode) {
+  const params = new URLSearchParams({ postcode })
+  return request(`/api/hotels/nearby?${params}`)
+}
+
 export function getTravelers() {
   return request('/api/users')
 }

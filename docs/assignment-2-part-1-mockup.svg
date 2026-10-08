@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1320" viewBox="0 0 1600 1320" role="img" aria-labelledby="title desc">
+  <title id="title">Expedia Lite Assignment 2 Part 1 early list and map mockup</title>
+  <desc id="desc">Annotated wireframe showing a ZIP search, returned center, synchronized hotel list and Leaflet map, selected list row and marker, attribution, and loading and error states.</desc>
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffaf2"/>
+      <stop offset="1" stop-color="#f4eee5"/>
+    </linearGradient>
+    <pattern id="map-grid" width="72" height="72" patternUnits="userSpaceOnUse">
+      <rect width="72" height="72" fill="#eaf0e7"/>
+      <path d="M0 20H72M18 0V72M0 58H72M55 0V72" stroke="#d3ddd2" stroke-width="3"/>
+      <path d="M0 38L72 4M8 72L72 40" stroke="#f8f5e8" stroke-width="8"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#273036" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#c55a2d"/>
+    </marker>
+    <style>
+      .sans { font-family: Inter, Arial, sans-serif; }
+      .serif { font-family: Georgia, 'Times New Roman', serif; }
+      .navy { fill: #13223b; }
+      .muted { fill: #5b6678; }
+      .orange { fill: #b6572d; }
+      .tiny { font-size: 17px; }
+      .small { font-size: 20px; }
+      .body { font-size: 23px; }
+      .label { font-size: 17px; font-weight: 800; letter-spacing: 1px; }
+      .heading { font-size: 38px; font-weight: 600; }
+      .card { fill: #ffffff; fill-opacity: .84; stroke: #ded9d0; stroke-width: 2; }
+      .state-title { font-size: 17px; font-weight: 800; letter-spacing: 1.2px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1320" fill="url(#page)"/>
+  <circle cx="92" cy="70" r="25" fill="#173c55"/>
+  <text x="92" y="79" text-anchor="middle" class="sans" font-size="24" font-weight="800" fill="#fffaf2">E</text>
+  <text x="134" y="79" class="serif navy" font-size="31" font-weight="700">Expedia Lite</text>
+  <text x="1500" y="75" text-anchor="end" class="sans muted" font-size="19" font-weight="700" letter-spacing="1.5">ASSIGNMENT 2 · PART 1 EARLY MOCKUP</text>
+  <line x1="68" y1="108" x2="1532" y2="108" stroke="#13223b" stroke-opacity=".14" stroke-width="2"/>
+
+  <text x="70" y="164" class="sans orange label">LIVE HOTEL DISCOVERY</text>
+  <text x="70" y="220" class="serif navy" font-size="54" font-weight="600">Find hotels near a U.S. ZIP code</text>
+  <text x="70" y="258" class="sans muted body">The accepted postcode center anchors one honest, bounded 5 km provider search.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="294" width="1460" height="170" rx="24" class="card"/>
+  </g>
+  <text x="104" y="335" class="sans navy label">FIVE-DIGIT U.S. ZIP CODE</text>
+  <rect x="104" y="354" width="520" height="68" rx="13" fill="#fff" stroke="#d5924f" stroke-width="3"/>
+  <text x="130" y="398" class="sans navy" font-size="25">16802</text>
+  <rect x="644" y="354" width="235" height="68" rx="13" fill="#c55a2d"/>
+  <text x="762" y="398" text-anchor="middle" class="sans" font-size="23" font-weight="800" fill="#fff">Search hotels</text>
+  <text x="104" y="448" class="sans muted tiny">Exactly five digits · leading zeros preserved · submit starts one backend search</text>
+  <g transform="translate(940 326)">
+    <rect width="546" height="105" rx="15" fill="#173c55"/>
+    <text x="26" y="34" class="sans" font-size="16" font-weight="800" letter-spacing="1.4" fill="#efad6a">RETURNED SEARCH CENTER</text>
+    <text x="26" y="66" class="serif" font-size="27" font-weight="600" fill="#fffaf2">16802 · State College, US</text>
+    <text x="26" y="92" class="sans" font-size="17" fill="#d9e5e9">40.803168, −77.861385 · hotels inside 5 km only</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="500" width="600" height="565" rx="24" class="card"/>
+    <rect x="698" y="500" width="832" height="565" rx="24" class="card"/>
+  </g>
+
+  <text x="104" y="548" class="sans orange label">UP TO 20 PROVIDER RESULTS</text>
+  <text x="104" y="590" class="serif navy heading">Nearby hotels</text>
+  <text x="104" y="621" class="sans muted tiny">Same collection and selection as the map</text>
+
+  <g>
+    <rect x="104" y="650" width="532" height="126" rx="16" fill="#fff7ed" stroke="#c55a2d" stroke-width="4"/>
+    <rect x="514" y="668" width="98" height="29" rx="14" fill="#c55a2d"/>
+    <text x="563" y="689" text-anchor="middle" class="sans" font-size="13" font-weight="800" fill="#fff">SELECTED</text>
+    <circle cx="139" cy="692" r="20" fill="#c55a2d"/>
+    <text x="139" y="699" text-anchor="middle" class="sans" font-size="18" font-weight="800" fill="#fff">A</text>
+    <text x="174" y="687" class="sans navy" font-size="24" font-weight="800">Provider hotel name</text>
+    <text x="174" y="718" class="sans muted small">Formatted address from Geoapify</text>
+    <text x="174" y="748" class="sans muted tiny">1.2 km from search center · illustrative fields</text>
+  </g>
+  <g>
+    <rect x="104" y="794" width="532" height="112" rx="16" fill="#fff" stroke="#dfd9d0" stroke-width="2"/>
+    <circle cx="139" cy="834" r="17" fill="#173c55"/>
+    <text x="139" y="840" text-anchor="middle" class="sans" font-size="15" font-weight="800" fill="#fff">B</text>
+    <text x="174" y="832" class="sans navy" font-size="23" font-weight="800">Name unavailable</text>
+    <text x="174" y="863" class="sans muted small">Address not provided</text>
+    <text x="174" y="889" class="sans muted tiny">Honest missing-field labels; no invented details</text>
+  </g>
+  <g>
+    <rect x="104" y="924" width="532" height="112" rx="16" fill="#fff" stroke="#dfd9d0" stroke-width="2"/>
+    <circle cx="139" cy="964" r="17" fill="#173c55"/>
+    <text x="139" y="970" text-anchor="middle" class="sans" font-size="15" font-weight="800" fill="#fff">C</text>
+    <text x="174" y="962" class="sans navy" font-size="23" font-weight="800">Another provider hotel</text>
+    <text x="174" y="993" class="sans muted small">Response address shown exactly</text>
+    <text x="174" y="1019" class="sans muted tiny">No price, rating, rooms, or booking claim</text>
+  </g>
+
+  <text x="732" y="548" class="sans orange label">LEAFLET MAP · SAME RESULTS</text>
+  <text x="732" y="590" class="serif navy heading">5 km from 16802</text>
+  <rect x="732" y="624" width="764" height="405" rx="16" fill="url(#map-grid)" stroke="#c9d2c8" stroke-width="2"/>
+  <circle cx="1110" cy="828" r="178" fill="#f0aa4f" fill-opacity=".10" stroke="#c55a2d" stroke-opacity=".45" stroke-width="4" stroke-dasharray="10 10"/>
+  <circle cx="1110" cy="828" r="16" fill="#173c55" stroke="#fff" stroke-width="5"/>
+  <text x="1110" y="835" text-anchor="middle" class="sans" font-size="14" font-weight="800" fill="#fff">ZIP</text>
+  <text x="1133" y="855" class="sans navy" font-size="16" font-weight="800">Search center</text>
+
+  <g transform="translate(934 708)">
+    <path d="M0 0 C-26 0 -41 18 -41 39 C-41 72 0 104 0 104 C0 104 41 72 41 39 C41 18 26 0 0 0Z" fill="#c55a2d" stroke="#fff" stroke-width="6"/>
+    <circle cy="38" r="18" fill="#fffaf2"/>
+    <text y="45" text-anchor="middle" class="sans" font-size="19" font-weight="800" fill="#c55a2d">A</text>
+  </g>
+  <rect x="765" y="650" width="310" height="75" rx="12" fill="#fff" stroke="#c55a2d" stroke-width="3"/>
+  <text x="784" y="678" class="sans orange" font-size="16" font-weight="800">SELECTED MARKER</text>
+  <text x="784" y="706" class="sans navy" font-size="20" font-weight="800">Provider hotel name</text>
+
+  <g transform="translate(1283 755)">
+    <path d="M0 0 C-18 0 -29 13 -29 28 C-29 51 0 75 0 75 C0 75 29 51 29 28 C29 13 18 0 0 0Z" fill="#173c55" stroke="#fff" stroke-width="5"/>
+    <text y="35" text-anchor="middle" class="sans" font-size="15" font-weight="800" fill="#fff">B</text>
+  </g>
+  <g transform="translate(1186 918)">
+    <path d="M0 0 C-18 0 -29 13 -29 28 C-29 51 0 75 0 75 C0 75 29 51 29 28 C29 13 18 0 0 0Z" fill="#173c55" stroke="#fff" stroke-width="5"/>
+    <text y="35" text-anchor="middle" class="sans" font-size="15" font-weight="800" fill="#fff">C</text>
+  </g>
+  <path d="M636 712 C715 684 784 684 879 713" fill="none" stroke="#c55a2d" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrow)"/>
+  <text x="693" y="674" class="sans orange" font-size="16" font-weight="800">ONE SHARED selectedPlaceId</text>
+
+  <rect x="1193" y="988" width="303" height="41" fill="#fff" fill-opacity=".92"/>
+  <text x="1206" y="1014" class="sans navy" font-size="15">Leaflet · © OpenStreetMap contributors</text>
+  <text x="732" y="1054" class="sans muted tiny">Powered by Geoapify · attribution remains visible at every viewport size</text>
+
+  <text x="70" y="1123" class="sans orange label">ANNOTATED STATE REFERENCE · EACH REPLACES STALE RESULTS</text>
+  <g transform="translate(70 1146)">
+    <rect width="276" height="125" rx="17" fill="#fff" stroke="#dfd9d0" stroke-width="2"/>
+    <circle cx="30" cy="31" r="12" fill="none" stroke="#c55a2d" stroke-width="4" stroke-dasharray="12 8"/>
+    <text x="52" y="37" class="sans orange state-title">LOADING</text>
+    <text x="20" y="76" class="sans navy tiny">Finding hotels within 5 km…</text>
+    <text x="20" y="104" class="sans muted" font-size="15">Search disabled; old results cleared.</text>
+  </g>
+  <g transform="translate(362 1146)">
+    <rect width="276" height="125" rx="17" fill="#fff5f1" stroke="#b6572d" stroke-width="2"/>
+    <text x="20" y="37" class="sans orange state-title">INVALID INPUT</text>
+    <text x="20" y="76" class="sans navy tiny">Enter exactly five digits.</text>
+    <text x="20" y="104" class="sans muted" font-size="15">No provider request is made.</text>
+  </g>
+  <g transform="translate(654 1146)">
+    <rect width="276" height="125" rx="17" fill="#fff5f1" stroke="#b6572d" stroke-width="2"/>
+    <text x="20" y="37" class="sans orange state-title">UNRESOLVED ZIP</text>
+    <text x="20" y="76" class="sans navy tiny">Exact U.S. ZIP not resolved.</text>
+    <text x="20" y="104" class="sans muted" font-size="15">No substitute location search.</text>
+  </g>
+  <g transform="translate(946 1146)">
+    <rect width="276" height="125" rx="17" fill="#fff" stroke="#dfd9d0" stroke-width="2"/>
+    <text x="20" y="37" class="sans orange state-title">NO HOTELS</text>
+    <text x="20" y="76" class="sans navy tiny">No usable hotels within 5 km.</text>
+    <text x="20" y="104" class="sans muted" font-size="15">Center remains visible.</text>
+  </g>
+  <g transform="translate(1238 1146)">
+    <rect width="292" height="125" rx="17" fill="#fff5f1" stroke="#b6572d" stroke-width="2"/>
+    <text x="20" y="37" class="sans orange state-title">PROVIDER FAILURE</text>
+    <text x="20" y="76" class="sans navy tiny">Service unavailable. Try again.</text>
+    <text x="20" y="104" class="sans muted" font-size="15">Never mislabeled as zero results.</text>
+  </g>
+
+  <text x="70" y="1304" class="sans muted" font-size="15">Early wireframe · illustrative provider-field placeholders only · wide view shown; narrow view stacks list above map.</text>
+</svg>

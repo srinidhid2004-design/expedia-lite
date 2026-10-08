@@ -18,6 +18,11 @@ from .booking_data import (
 )
 from .config import PROJECT_ROOT_ENV_PATH, geoapify_key_status
 from .database import DATABASE_PATH
+from .hotel_discovery import (
+    HotelDiscoveryProviderError,
+    HotelDiscoveryRateLimitError,
+    discover_hotels_by_zip,
+)
 from .location_controller import (
     GeoapifyConfigurationError,
     GeoapifyRequestError,
@@ -103,6 +108,51 @@ def create_app(
                 detail="Enter exactly five digits for a U.S. ZIP code.",
             )
         return zip_location_response(postcode)
+
+    @application.get("/api/hotels/nearby")
+    def nearby_hotels(
+        postcode: Annotated[
+            str,
+            Query(description="Exactly five ASCII digits"),
+        ],
+    ) -> dict[str, object]:
+        if not (
+            len(postcode) == 5
+            and postcode.isascii()
+            and postcode.isdigit()
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Enter exactly five digits for a U.S. ZIP code.",
+            )
+
+        try:
+            result = discover_hotels_by_zip(postcode)
+        except GeoapifyConfigurationError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Geoapify is not configured.",
+            ) from exc
+        except ZipLookupUnresolvedError as exc:
+            raise HTTPException(
+                status_code=404,
+                detail=f"ZIP code {postcode} could not be resolved.",
+            ) from exc
+        except HotelDiscoveryRateLimitError as exc:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "The hotel provider rate or quota limit was reached. "
+                    "Please try again later."
+                ),
+            ) from exc
+        except (GeoapifyRequestError, HotelDiscoveryProviderError) as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="The hotel discovery provider request failed.",
+            ) from exc
+
+        return result.to_dict()
 
     @application.get("/api/hotels/search")
     def search_hotels(
