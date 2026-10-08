@@ -16,7 +16,19 @@ from .booking_data import (
     list_bookings,
     list_travelers,
 )
+from .config import PROJECT_ROOT_ENV_PATH, geoapify_key_status
 from .database import DATABASE_PATH
+from .hotel_discovery import (
+    HotelDiscoveryProviderError,
+    HotelDiscoveryRateLimitError,
+    discover_hotels_by_zip,
+)
+from .location_controller import (
+    GeoapifyConfigurationError,
+    GeoapifyRequestError,
+    ZipLookupUnresolvedError,
+    lookup_zip_location,
+)
 from .travel_data import TravelDataError, search_hotel_stays
 
 
@@ -25,10 +37,14 @@ class BookingCreate(BaseModel):
     trip_id: str
 
 
-def create_app(database_path: Path = DATABASE_PATH) -> FastAPI:
+def create_app(
+    database_path: Path = DATABASE_PATH,
+    env_path: Path = PROJECT_ROOT_ENV_PATH,
+) -> FastAPI:
     """Build an application bound to one SQLite database path."""
 
     application = FastAPI(title="Expedia Lite API", version="2.0.0")
+    configuration_status = geoapify_key_status(env_path)
 
     @application.exception_handler(TravelDataError)
     async def handle_travel_data_error(
@@ -44,7 +60,99 @@ def create_app(database_path: Path = DATABASE_PATH) -> FastAPI:
 
     @application.get("/api/health")
     def health() -> dict[str, str]:
-        return {"status": "ok"}
+        return {
+            "status": "ok",
+            "geoapify_api_key": configuration_status,
+        }
+
+    def zip_location_response(postcode: str) -> dict[str, str | float]:
+        """Resolve a validated postcode and map controller errors safely."""
+
+        try:
+            location = lookup_zip_location(postcode)
+        except GeoapifyConfigurationError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Geoapify is not configured.",
+            ) from exc
+        except ZipLookupUnresolvedError as exc:
+            raise HTTPException(
+                status_code=404,
+                detail=f"ZIP code {postcode} could not be resolved.",
+            ) from exc
+        except GeoapifyRequestError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="The location provider request failed.",
+            ) from exc
+        return location.to_dict()
+
+    @application.get("/api/demo/zip-location")
+    def demo_zip_location() -> dict[str, str | float]:
+        return zip_location_response("16802")
+
+    @application.get("/api/zip-location")
+    def zip_location(
+        postcode: Annotated[
+            str,
+            Query(description="Exactly five ASCII digits"),
+        ],
+    ) -> dict[str, str | float]:
+        if not (
+            len(postcode) == 5
+            and postcode.isascii()
+            and postcode.isdigit()
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Enter exactly five digits for a U.S. ZIP code.",
+            )
+        return zip_location_response(postcode)
+
+    @application.get("/api/hotels/nearby")
+    def nearby_hotels(
+        postcode: Annotated[
+            str,
+            Query(description="Exactly five ASCII digits"),
+        ],
+    ) -> dict[str, object]:
+        if not (
+            len(postcode) == 5
+            and postcode.isascii()
+            and postcode.isdigit()
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Enter exactly five digits for a U.S. ZIP code.",
+            )
+
+        try:
+            result = discover_hotels_by_zip(postcode)
+        except GeoapifyConfigurationError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Geoapify is not configured.",
+            ) from exc
+        except ZipLookupUnresolvedError as exc:
+            raise HTTPException(
+                status_code=404,
+                detail=f"ZIP code {postcode} could not be resolved.",
+            ) from exc
+        except HotelDiscoveryRateLimitError as exc:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "The hotel provider rate or quota limit was reached. "
+                    "Please try again later."
+                ),
+            ) from exc
+        except (GeoapifyRequestError, HotelDiscoveryProviderError) as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="The hotel discovery provider request failed.",
+            ) from exc
+
+        return result.to_dict()
 
     @application.get("/api/hotels/search")
     def search_hotels(

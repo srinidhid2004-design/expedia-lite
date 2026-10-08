@@ -209,3 +209,230 @@ Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8
 - Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite).
 - The report uses immutable merge-commit URLs for the three Part 2 screenshots and public `main` links for the current project records.
 - Course-site access and submission remain outside this checkpoint.
+
+## 2026-10-07 — First public API activity
+
+Related prompt: [`10-first-public-api-activity.md`](../prompts/10-first-public-api-activity.md).
+
+The user completed a visible browser review and approved the first-public-API milestone before it was committed on `feature/assignment-2-part-1`. This checkpoint records only the completed Geoapify ZIP-location activity; Assignment 2 hotel discovery, map, shortlist, and chatbot behavior have not been added by this milestone.
+
+### Configuration and security
+
+- The project-root `.env` is ignored by Git and is not tracked. A safe name-only check confirmed one `GEOAPIFY_API_KEY` setting without displaying its value or any `.env` contents.
+- `backend/app/config.py` loads the project-root `.env` through an explicit path. `GET /api/health` reports only `key is configured` or `key is not configured`.
+- Geoapify requests and the credential remain in the backend. A comparison against the configured value found no credential match in the intended tracked or untracked project files, and the frontend source contains no API key or `GEOAPIFY_API_KEY` reference.
+
+### Implemented activity behavior
+
+- `backend/app/location_controller.py` resolves a supplied ZIP through Geoapify forward geocoding, requires an exact matching U.S. postcode with valid coordinates, and distinguishes missing configuration, an unresolved ZIP, and provider failure without returning a provider URL, credential, or raw exception.
+- The fixed classroom route `GET /api/demo/zip-location` continues to use `16802`.
+- `GET /api/zip-location?postcode=...` accepts the ZIP as a string, requires exactly five ASCII digits, and therefore preserves leading zeros.
+- The Vue panel provides a labeled text input, numeric keyboard hint, five-character limit, accessible instructions, loading and error feedback, and a labeled result table. It calls only the local `/api` route through the existing Vite proxy.
+
+### Automated verification
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Observed: `36 passed, 2 warnings in 2.05s`. The warnings are the previously documented upstream FastAPI/Starlette test-client deprecations. The suite includes mocked success for `16802`, leading-zero preservation, invalid input, mismatched or unresolved responses, missing configuration, and sanitized provider failure behavior.
+
+Frontend commands, run from `frontend/`:
+
+```powershell
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd .
+npm run build
+```
+
+Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8.3.0 transformed 12 modules and completed the production build in `313ms`.
+
+### Live API and browser verification
+
+- `GET /api/health` returned application status plus `key is configured`, without returning the key.
+- A live request to `GET /api/zip-location?postcode=16802` returned the sanitized location `16802`, `State College`, `US`, latitude `40.803167822`, and longitude `-77.861384958` on October 7, 2026.
+- In the visible frontend, entering and submitting `16802` displayed those same values in the labeled ZIP code, locality, country, latitude, and longitude table. The input, submit button, and complete result table were arranged together for review.
+- The existing hotel-name search still returned Harbor stays `T001` and `T009`.
+- The browser console contained no application warnings or errors.
+- The user subsequently confirmed that the ZIP-input and result-table milestone passed manual review.
+
+## 2026-10-07 — Assignment 2 Part 1 AutoLoop verification
+
+This checkpoint verified the approved ZIP-to-hotel discovery and synchronized
+Leaflet map on `feature/assignment-2-part-1`. It used exactly one live hotel
+search for ZIP `16802`. All failure and empty-result checks used labeled HTTP
+mocks or the credential-free Places fixture and consumed no additional provider
+quota.
+
+### Automated checks
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Expected: all postcode, discovery, route, Assignment 1 search, and booking tests
+pass. Observed: **57 passed** with two previously documented upstream
+FastAPI/Starlette test-client deprecation warnings.
+
+Focused mock command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests\test_hotel_discovery.py -q -p no:cacheprovider
+```
+
+Observed: **9 passed** in `0.45s`. These tests make no live provider request and
+cover the credential-free success fixture, missing optional fields, successful
+zero results, malformed data, timeout, provider failure, rate limiting, missing
+configuration, and unresolved exact ZIP behavior.
+
+Frontend and whitespace commands:
+
+```powershell
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd . --no-cache
+npm run build
+git diff --check
+```
+
+Observed: Oxlint and ESLint passed without findings; Vite `8.3.0` transformed
+16 modules and completed the production build in `289ms`; `git diff --check`
+exited `0` with no whitespace findings.
+
+### Live ZIP 16802 comparison
+
+Observation date: **October 7, 2026**. Live versus mocked label: **live**.
+
+- Action: entered the string `16802` in the labeled ZIP input and submitted it
+  once through the visible Vue interface.
+- Expected: loading feedback; exact U.S. postcode resolution; a sanitized
+  search center; and one bounded hotel collection used by both the list and
+  map, without relying on a fixed count.
+- Observed loading text: `Finding hotels within 5 km of ZIP 16802…`.
+- Observed center: postcode `16802`, locality `State College`, country `US`,
+  latitude `40.803167822`, longitude `-77.861384958`.
+- Observed provider page: 20 hotel records on this request. This is a variable,
+  capped provider page—not an assertion that future requests return 20 or that
+  it is an exhaustive inventory.
+- Comparison: the visible table contained 20 unique provider place IDs; the map
+  contained 20 hotel markers; and the normalized hotel-name sets matched. A
+  separate ZIP-center marker and the 5 km circle were also visible.
+- The initial shared selection identified `Scholar Hotel State College` in the
+  row and the marker title. Evidence:
+  [`assignment-2-part-1-live-list-map.png`](../screenshots/assignment-2-part-1-live-list-map.png).
+
+### Selection, accessibility, and responsive checks
+
+- Action: focused the second list control and pressed Enter.
+  - Expected: one shared selection updates the row, marker styling, title, and
+    popup.
+  - Observed: the selected row, selected marker title, and popup all identified
+    `Hotel State College`; exactly one row and one marker were selected.
+- Action: focused the marker titled `Nittany Lion Inn near ZIP 16802` and
+  pressed Enter.
+  - Expected: the matching list item becomes selected without a separate map
+    selection state.
+  - Observed: the selected marker, popup, and list row all identified
+    `Nittany Lion Inn`; the marker exposed `role="button"` and `tabindex="0"`.
+- Evidence:
+  [`assignment-2-part-1-synchronized-selection.png`](../screenshots/assignment-2-part-1-synchronized-selection.png).
+- At a temporary `390 × 844` viewport, the ZIP form and list/map area used one
+  column, the map retained a `380px` height, the hotel table remained available
+  through its own horizontal scroller, and selection remained visible. The
+  viewport override was reset after the check.
+- Attribution remained visibly rendered as `Leaflet | © OpenStreetMap
+  contributors`.
+
+### Distinct states and mocked outcomes
+
+Live-versus-mocked label for every item below: **mocked or local validation;
+no provider quota used**.
+
+| State | Action or fixture | Expected result | Observed result |
+| --- | --- | --- | --- |
+| Invalid input | Submit local value `1680` | Exact five-digit guidance and no request | `Enter exactly five digits for a U.S. ZIP code.`; previous rows, markers, and map cleared |
+| Unresolved ZIP | Mock exact-postcode lookup failure | Safe unresolved response; no substitute hotel search | Dedicated unresolved exception and HTTP `404` mapping passed |
+| No nearby hotels | Mock valid empty FeatureCollection | Successful empty hotel response | HTTP `200`, count `0`, and empty hotel list passed |
+| Provider failure | Mock timeout and HTTP failure | Safe service failure without raw exception or credentials | Dedicated provider failure checks passed |
+| Malformed response | Mock invalid/non-usable provider data | Malformed response is not reported as an empty success | Dedicated malformed-response checks passed |
+| Rate or quota failure | Mock HTTP `429` | Distinct retry-later response | Dedicated rate/quota exception and HTTP `429` mapping passed |
+
+Representative local-validation evidence:
+[`assignment-2-part-1-invalid-zip.png`](../screenshots/assignment-2-part-1-invalid-zip.png).
+
+### Assignment 1 regression and credential checks
+
+- Action: searched `Harbor` through the visible browser.
+  - Expected: the existing Assignment 1 search returns `T001` and `T009`.
+  - Observed: status `2 stays found for “Harbor”.`, two result rows, and trip
+    IDs `T001` and `T009`.
+- Current-page browser console: zero application errors and zero warnings.
+- `.env` remained ignored and untracked. A value comparison performed without
+  printing the configured value found zero matches in tracked files and saved
+  screenshots.
+- Frontend source and production output contained zero occurrences of the
+  configured credential and zero `GEOAPIFY_API_KEY` or `apiKey` identifiers.
+  No environment file appeared in the production build.
+
+### Corrections and limitations
+
+- No application source correction was required by this AutoLoop. All
+  acceptance checks passed on the first application cycle.
+- The in-app browser's tall-element screenshot capture can repeat content below
+  the primary viewport when stitching the long 20-row table. The live center,
+  first result rows, selected marker/popup, and visible attribution in the
+  linked evidence remain unaltered; the live result count is also recorded
+  independently above.
+- Geoapify coverage and fields can change. The UI intentionally reports a
+  bounded page of up to 20 provider records and does not claim prices, ratings,
+  rooms, availability, bookability, or exhaustive inventory.
+
+## 2026-10-07 — Assignment 2 Part 1 final documentation checkpoint
+
+Related prompt records:
+
+- [`11-assignment-2-research-and-mockup.md`](../prompts/11-assignment-2-research-and-mockup.md)
+- [`12-leaflet-dependency-checkpoint.md`](../prompts/12-leaflet-dependency-checkpoint.md)
+- [`13-hotel-discovery-backend.md`](../prompts/13-hotel-discovery-backend.md)
+- [`14-hotel-discovery-route-and-list.md`](../prompts/14-hotel-discovery-route-and-list.md)
+- [`15-leaflet-list-map-synchronization.md`](../prompts/15-leaflet-list-map-synchronization.md)
+- [`16-assignment-2-part-1-verification.md`](../prompts/16-assignment-2-part-1-verification.md)
+- [`17-assignment-2-part-1-documentation.md`](../prompts/17-assignment-2-part-1-documentation.md)
+
+The user reported completing manual review of the working Assignment 2 Part 1 interface before this documentation-only checkpoint. No application source, tests, dependency declaration, instructor data, or generated runtime data was authorized to change.
+
+### Final expected-versus-observed summary
+
+| Action | Expected result | Observed result |
+| --- | --- | --- |
+| Submit live ZIP `16802` once on October 7, 2026 | Resolve only the exact U.S. postcode, show the sanitized center, and return a bounded provider page from a strict 5 km hotel search without assuming a fixed count | Resolved `16802`, State College, `US`, latitude `40.803167822`, longitude `-77.861384958`; the live response contained 20 usable records on that request, correctly described as variable and capped rather than exhaustive |
+| Compare the live backend response with the visible UI | Search center matches; the list and map contain the same normalized hotels | Center values matched; 20 unique list IDs matched 20 hotel-marker IDs; the separate center marker and radius circle remained visible |
+| Select hotels from the list and map | One shared place ID keeps row, marker, title, and popup synchronized in both directions | List selection identified the matching marker; marker selection identified and scrolled to the matching row; keyboard activation passed |
+| Inspect provider-field handling | Optional fields are represented honestly and unsupported commercial claims are absent | Missing names use `Name unavailable`, missing addresses use `Address not provided`, and no price, rating, room, availability, or bookability claim is shown |
+| Check failure and empty states without another live search | Invalid input, unresolved ZIP, no hotels, provider failure, malformed response, rate/quota failure, and missing configuration remain distinct | Local validation plus the credential-free fixture and mocks verified each state with safe feedback and no additional provider quota |
+| Check map disclosure and responsive behavior | Attribution remains visible and the list/map stay usable at a narrow viewport | `Leaflet | © OpenStreetMap contributors` remained visible; the 390 × 844 check stacked content and retained an operable map and table scroller |
+| Recheck Assignment 1 behavior and browser health | `Harbor` still returns T001 and T009 and the console has no application error | Both trip IDs were present; zero application errors and warnings were observed in the final page state |
+| Run repeatable automated checks | Backend, mocked discovery, frontend lint/build, and whitespace checks pass | 57 backend tests passed; 9 focused mocked discovery tests passed; Oxlint, ESLint, Vite production build, and `git diff --check` passed; two known upstream test-client deprecation warnings were non-failing |
+
+### Evidence artifacts
+
+- Live center, list, map, and attribution: [`assignment-2-part-1-live-list-map.png`](../screenshots/assignment-2-part-1-live-list-map.png)
+- Synchronized selection: [`assignment-2-part-1-synchronized-selection.png`](../screenshots/assignment-2-part-1-synchronized-selection.png)
+- Representative invalid-input state: [`assignment-2-part-1-invalid-zip.png`](../screenshots/assignment-2-part-1-invalid-zip.png)
+
+The in-app browser’s tall-element capture may repeat content below the primary evidence region when stitching the long result table. This is a screenshot artifact, not an application result. The primary center, list, selected marker or popup, and attribution evidence remains visible.
+
+### Revised approach and review record
+
+The initial classroom milestone used one fixed `Look up ZIP 16802` button. That screenshot was insufficient for the Assignment 2 Part 1 rubric because it did not demonstrate user-entered five-digit ZIP input or the final table/list-and-map workflow. The panel was revised, through separately reviewed checkpoints, to a labeled text input that preserves leading zeros, a semantic result table, nearby-hotel discovery, and a synchronized Leaflet map.
+
+An early startup check also opened FastAPI’s root URL and received the expected `{"detail":"Not Found"}` response. The procedure was corrected to use `/api/health` on port 8000 for backend health and the Vite interface on port 5173 for the application page.
+
+The user manually reviewed and approved the working Assignment 2 Part 1 interface. The assessed implementation commit and live demo-video link remain explicitly pending final review and a separately authorized Git/publication checkpoint.
+
+### AI assistance disclosure
+
+OpenAI Codex — GPT-5 assisted with research summarization, the early mockup, implementation planning, code generation, tests, debugging, verification, and documentation. The Codex interface did not expose a more specific internal snapshot identifier, so no version or model suffix is claimed. Human review and approval were performed at each milestone.

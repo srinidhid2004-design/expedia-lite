@@ -1,11 +1,14 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+
+import HotelDiscoveryMap from './components/HotelDiscoveryMap.vue'
 
 import {
   cancelBooking,
   createBooking,
   deleteBooking,
   findHotelStays,
+  findNearbyHotels,
   getBookingHistory,
   getTravelers,
 } from './services/travelApi'
@@ -16,6 +19,14 @@ const searchedName = ref('')
 const hasSearched = ref(false)
 const isSearching = ref(false)
 const searchError = ref('')
+
+const zipCode = ref('16802')
+const hotelDiscovery = ref(null)
+const selectedPlaceId = ref('')
+const isZipLookupLoading = ref(false)
+const zipValidationError = ref('')
+const zipLookupError = ref('')
+const hotelRowElements = new Map()
 
 const travelers = ref([])
 const selectedUserId = ref('')
@@ -28,6 +39,25 @@ const bookingError = ref('')
 const selectedTraveler = computed(() =>
   travelers.value.find((traveler) => traveler.user_id === selectedUserId.value),
 )
+
+const nearbyHotels = computed(() => hotelDiscovery.value?.hotels || [])
+
+const discoveryStatus = computed(() => {
+  if (isZipLookupLoading.value) {
+    return `Finding hotels within 5 km of ZIP ${zipCode.value}…`
+  }
+  if (zipValidationError.value || zipLookupError.value) {
+    return zipValidationError.value || zipLookupError.value
+  }
+  if (!hotelDiscovery.value) {
+    return 'Enter a five-digit U.S. ZIP code to find nearby hotels.'
+  }
+  if (nearbyHotels.value.length === 0) {
+    return `No usable nearby hotels were returned within 5 km of ZIP ${hotelDiscovery.value.search_center.postcode}.`
+  }
+  const hotelLabel = nearbyHotels.value.length === 1 ? 'hotel' : 'hotels'
+  return `${nearbyHotels.value.length} nearby ${hotelLabel} returned by Geoapify.`
+})
 
 const resultMessage = computed(() => {
   if (!hasSearched.value || searchError.value) return ''
@@ -87,6 +117,52 @@ async function search() {
   } finally {
     isSearching.value = false
   }
+}
+
+async function lookupZip() {
+  if (isZipLookupLoading.value) return
+
+  const postcode = zipCode.value
+  hotelDiscovery.value = null
+  selectedPlaceId.value = ''
+  zipValidationError.value = ''
+  zipLookupError.value = ''
+
+  if (!/^[0-9]{5}$/.test(postcode)) {
+    zipValidationError.value = 'Enter exactly five digits for a U.S. ZIP code.'
+    return
+  }
+
+  isZipLookupLoading.value = true
+  try {
+    hotelDiscovery.value = await findNearbyHotels(postcode)
+    selectedPlaceId.value = hotelDiscovery.value.hotels[0]?.provider_place_id || ''
+  } catch (error) {
+    zipLookupError.value = error.message
+  } finally {
+    isZipLookupLoading.value = false
+  }
+}
+
+function setHotelRowElement(element, placeId) {
+  if (element) {
+    hotelRowElements.set(placeId, element)
+  } else {
+    hotelRowElements.delete(placeId)
+  }
+}
+
+function selectHotel(placeId) {
+  selectedPlaceId.value = placeId
+}
+
+async function selectHotelFromMap(placeId) {
+  selectedPlaceId.value = placeId
+  await nextTick()
+  hotelRowElements.get(placeId)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'nearest',
+  })
 }
 
 async function loadHistory() {
@@ -218,6 +294,154 @@ onMounted(loadTravelers)
           </div>
           <p class="search-hint">Partial names work, and capitalization does not matter.</p>
         </form>
+      </section>
+
+      <section class="zip-demo" aria-labelledby="zip-demo-title">
+        <div class="zip-demo-heading">
+          <p class="eyebrow">Live hotel discovery</p>
+          <h2 id="zip-demo-title">Find hotels near a ZIP code</h2>
+          <p class="section-copy">
+            Resolve an exact five-digit U.S. ZIP and request up to 20 provider
+            hotel records within a 5 km circle. Results are not an exhaustive inventory.
+          </p>
+        </div>
+
+        <form class="zip-demo-action" aria-label="Nearby hotel search" @submit.prevent="lookupZip">
+          <div class="zip-field">
+            <label for="zip-code">U.S. ZIP code</label>
+            <input
+              id="zip-code"
+              v-model="zipCode"
+              name="zip-code"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              placeholder="16802"
+              aria-describedby="zip-help zip-status"
+              :aria-invalid="Boolean(zipValidationError)"
+            >
+            <p id="zip-help" class="zip-help">
+              Enter exactly five digits. Leading zeros are preserved.
+            </p>
+          </div>
+          <button type="submit" :disabled="isZipLookupLoading">
+            {{ isZipLookupLoading ? 'Searching…' : 'Search nearby hotels' }}
+          </button>
+          <p
+            id="zip-status"
+            class="zip-feedback"
+            :class="{ 'zip-error': zipValidationError || zipLookupError }"
+            role="status"
+            aria-live="polite"
+          >
+            {{ discoveryStatus }}
+          </p>
+        </form>
+
+        <div v-if="hotelDiscovery" class="discovery-summary">
+          <h3>Returned search center</h3>
+          <div class="zip-table-wrap">
+            <table class="zip-result-table" aria-label="Hotel search center">
+              <thead>
+                <tr>
+                  <th scope="col">ZIP code</th>
+                  <th scope="col">Locality</th>
+                  <th scope="col">Country</th>
+                  <th scope="col">Latitude</th>
+                  <th scope="col">Longitude</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{ hotelDiscovery.search_center.postcode }}</td>
+                  <td>{{ hotelDiscovery.search_center.locality || 'Not available' }}</td>
+                  <td>{{ hotelDiscovery.search_center.country_code }}</td>
+                  <td>{{ hotelDiscovery.search_center.latitude }}</td>
+                  <td>{{ hotelDiscovery.search_center.longitude }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="provider-note">
+            Up to {{ hotelDiscovery.result_limit }} hotel records within
+            {{ hotelDiscovery.search_radius_meters / 1000 }} km.
+            <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">
+              Powered by Geoapify
+            </a>
+          </p>
+          <p v-if="hotelDiscovery.omitted_provider_records" class="provider-note">
+            {{ hotelDiscovery.omitted_provider_records }} provider
+            {{ hotelDiscovery.omitted_provider_records === 1 ? 'record was' : 'records were' }}
+            omitted because required identifier or coordinate data was unavailable.
+          </p>
+        </div>
+
+        <div v-if="hotelDiscovery" class="discovery-results-layout">
+          <div class="hotel-list-panel">
+            <div v-if="nearbyHotels.length" class="zip-table-wrap">
+              <table class="nearby-hotel-table" aria-label="Nearby provider hotels">
+                <thead>
+                  <tr>
+                    <th scope="col">Hotel</th>
+                    <th scope="col">Address</th>
+                    <th scope="col">Coordinates</th>
+                    <th scope="col">Distance</th>
+                    <th scope="col">Selection</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="hotel in nearbyHotels"
+                    :key="hotel.provider_place_id"
+                    :ref="(element) => setHotelRowElement(element, hotel.provider_place_id)"
+                    :class="{ 'selected-provider-row': selectedPlaceId === hotel.provider_place_id }"
+                    :aria-current="selectedPlaceId === hotel.provider_place_id ? 'true' : undefined"
+                  >
+                    <td>
+                      <strong>{{ hotel.name || 'Name unavailable' }}</strong>
+                      <span class="record-id">{{ hotel.provider_place_id }}</span>
+                    </td>
+                    <td>{{ hotel.formatted_address || 'Address not provided' }}</td>
+                    <td>
+                      <span>{{ hotel.latitude }}</span>
+                      <span class="date-separator">{{ hotel.longitude }}</span>
+                    </td>
+                    <td>
+                      {{
+                        hotel.distance_meters === undefined
+                          ? 'Not provided'
+                          : `${Math.round(hotel.distance_meters)} m`
+                      }}
+                    </td>
+                    <td>
+                      <button
+                        class="action-button hotel-selection"
+                        type="button"
+                        :aria-pressed="selectedPlaceId === hotel.provider_place_id"
+                        @click="selectHotel(hotel.provider_place_id)"
+                      >
+                        {{ selectedPlaceId === hotel.provider_place_id ? 'Selected' : 'Select hotel' }}
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-else class="no-nearby-hotels" role="status">
+              <span class="empty-icon" aria-hidden="true">⌕</span>
+              <p>No usable hotel records were returned inside the 5 km search area.</p>
+            </div>
+          </div>
+
+          <HotelDiscoveryMap
+            :search-center="hotelDiscovery.search_center"
+            :hotels="nearbyHotels"
+            :selected-place-id="selectedPlaceId"
+            :radius-meters="hotelDiscovery.search_radius_meters"
+            @select-hotel="selectHotelFromMap"
+          />
+        </div>
       </section>
 
       <section class="traveler-panel" aria-labelledby="traveler-title">
