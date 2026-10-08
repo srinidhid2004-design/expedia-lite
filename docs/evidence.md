@@ -9,8 +9,8 @@ The initial workflow should have stopped after summarizing acceptance criteria a
 ### Scope and environment checks
 
 - Command: `.\backend\.venv\Scripts\python.exe -c "import sys; print(f'executable={sys.executable}'); print(f'prefix={sys.prefix}'); print(f'base_prefix={sys.base_prefix}'); print(f'version={sys.version.split()[0]}')"`.
-  - Observed executable: `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\.venv\Scripts\python.exe`.
-  - Observed environment prefix: `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\.venv`.
+  - Observed executable: `backend/.venv/Scripts/python.exe`.
+  - Observed environment prefix: `backend/.venv`.
   - Observed Python version: `3.14.7`.
 - Command: `rg -n --glob '!**/.venv/**' --glob '!**/node_modules/**' --glob '!**/dist/**' "\.csv" backend/app frontend/src`.
   - Observed application references only to `hotels.csv` and `trips.csv`, both in `backend/app/travel_data.py`.
@@ -93,7 +93,7 @@ The user authorized Part 2 after the Part 1 submission. Work began on `feature/p
 
 ### Scope, storage, and dependency checks
 
-- Confirmed the backend interpreter as `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\.venv\Scripts\python.exe`.
+- Confirmed the backend interpreter as `backend/.venv/Scripts/python.exe`.
 - Confirmed Python’s standard-library `sqlite3` support with SQLite `3.50.4`; a temporary database row survived close and reopen. No dependency was installed or changed.
 - Command: `rg -n --glob '!**/.venv/**' --glob '!**/node_modules/**' --glob '!**/dist/**' '\.csv' backend\app frontend\src`.
   - Observed: the only runtime CSV paths are the four one-time seed inputs in `backend/app/database.py`.
@@ -150,7 +150,7 @@ Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8
 - The visible in-app browser was narrower than the 720-pixel breakpoint; controls stacked correctly and both tables remained available through horizontal scrolling.
 - Browser console error query after all interactions returned an empty list.
 
-For final cleanup, port ownership was reconfirmed as task Uvicorn PID `33400` on 8000 and task Vite PID `34884` on 5173. Only their service sessions were stopped, and both ports were confirmed released. Manual Visual Studio Code review and merge/publication remain pending.
+For final cleanup, port ownership was reconfirmed as task Uvicorn PID `33400` on 8000 and task Vite PID `34884` on 5173. Only their service sessions were stopped, and both ports were confirmed released. At that checkpoint, manual Visual Studio Code review and merge/publication had not yet occurred; the later publication records supersede that state.
 
 ## 2026-09-15 — Part 2 manual review approval
 
@@ -191,8 +191,8 @@ Observed: Oxlint passed with no findings; ESLint passed with no findings; Vite 8
 
 ### Disposable restart verification
 
-- Real database preserved at `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\expedia_lite.sqlite3` with baseline and final SHA-256 `E492632B5C26A5CF0A9EE1EE5E2D8C37108118EDA4B7C074A1EE3074B8F9E17B`.
-- Disposable database: `C:\Users\srini\Documents\ChatGPT\expedia-lite\backend\part2-final-verification.sqlite3`, ignored by `backend/*.sqlite3`.
+- Real database preserved at `backend/expedia_lite.sqlite3` with baseline and final SHA-256 `E492632B5C26A5CF0A9EE1EE5E2D8C37108118EDA4B7C074A1EE3074B8F9E17B`.
+- Disposable database: `backend/part2-final-verification.sqlite3`, ignored by `backend/*.sqlite3`.
 - Before the interruption, B007 had been created and cancelled, then the separate B008 record had been created and deleted through the frontend.
 - On recovery, a read-only SQLite query confirmed B007 as `(B007, U006, T001, cancelled)`, B008 absent, table counts `{hotels: 8, trips: 12, users: 6, bookings: 7}`, `seeded=1`, and `next_booking_number=9`.
 - Port 8000 was still owned by the paused disposable verification backend, PID `39028`, whose full command line identified the project virtual environment, disposable database, loopback host, and port. Port 5173 was free. The existing backend was recovered, and only the missing frontend was started with `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`; its listener was task-owned Vite PID `22580`.
@@ -431,8 +431,21 @@ The initial classroom milestone used one fixed `Look up ZIP 16802` button. That 
 
 An early startup check also opened FastAPI’s root URL and received the expected `{"detail":"Not Found"}` response. The procedure was corrected to use `/api/health` on port 8000 for backend health and the Vite interface on port 5173 for the application page.
 
-The user manually reviewed and approved the working Assignment 2 Part 1 interface. The assessed implementation commit and live demo-video link remain explicitly pending final review and a separately authorized Git/publication checkpoint.
+The user manually reviewed and approved the working Assignment 2 Part 1 interface. At this checkpoint, the assessed merge and live demo-video URL had not yet been supplied; the publication record below supersedes that earlier state.
 
 ### AI assistance disclosure
 
 OpenAI Codex — GPT-5 assisted with research summarization, the early mockup, implementation planning, code generation, tests, debugging, verification, and documentation. The Codex interface did not expose a more specific internal snapshot identifier, so no version or model suffix is claimed. Human review and approval were performed at each milestone.
+
+## 2026-10-07 — Assignment 2 Part 1 publication and demo completion
+
+Related prompt: [`18-assignment-2-part-1-publication-finalization.md`](../prompts/18-assignment-2-part-1-publication-finalization.md).
+
+- Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite).
+- Assessed merge commit: [`6c0575d092ad677b3ec25a6bdaa10aa7739fad29`](https://github.com/srinidhid2004-design/expedia-lite/commit/6c0575d092ad677b3ec25a6bdaa10aa7739fad29), subject `Merge Assignment 2 Part 1`.
+- Public demo video: [Expedia Lite — Assignment 2 Part 1 demonstration](https://drive.google.com/file/d/1HIHOgmqgaugYnmLFjktFhjwINth2j6fC/view?usp=sharing).
+- The merge commit and repository artifacts were reachable from an unauthenticated GitHub view.
+- The Google Drive link opened in an unauthenticated viewer, displayed the recording preview, and did not show a request-access gate.
+- Public links were checked for the report, assessed commit, research note, early mockup, evidence log, three screenshots, prompt index, and project documentation.
+- The report and linked project artifacts contain no configured credential or local `.env` contents. The early mockup labels its generic hotel names and addresses as illustrative provider-field placeholders; the implementation and evidence use only provider-returned or explicitly mocked/placeholder data and make no unsupported commercial claim.
+- No application source, dependency declaration, instructor data, generated runtime data, or Canvas content was changed or accessed during this documentation-only finalization.

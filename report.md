@@ -4,13 +4,13 @@
 
 Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite)
 
-Assessed Assignment 2 Part 1 commit: **Pending final review.** No assessed commit was created during this documentation checkpoint.
+Assessed Assignment 2 Part 1 merge commit: [`6c0575d092ad677b3ec25a6bdaa10aa7739fad29`](https://github.com/srinidhid2004-design/expedia-lite/commit/6c0575d092ad677b3ec25a6bdaa10aa7739fad29) (`Merge Assignment 2 Part 1`).
 
-Live demo video: **Pending.** The video has not yet been recorded or published.
+Live demo video: [Expedia Lite — Assignment 2 Part 1 demonstration](https://drive.google.com/file/d/1HIHOgmqgaugYnmLFjktFhjwINth2j6fC/view?usp=sharing).
 
 Project records: [README.md](https://github.com/srinidhid2004-design/expedia-lite/blob/main/README.md), [AGENTS.md](https://github.com/srinidhid2004-design/expedia-lite/blob/main/AGENTS.md), [design](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/design.md), [research](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-1-research.md), [early mockup](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-1-mockup.svg), [verification procedure](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/verification.md), [evidence log](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/evidence.md), [prompt index](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/README.md), and [current handoff](https://github.com/srinidhid2004-design/expedia-lite/blob/main/handoffs/current.md).
 
-The Assignment 2 files and evidence are still on the local feature branch. Their `main` links above and below are publication targets that become publicly accessible after final review, commit, merge, and push. This report does not claim that unpublished paths are already live.
+The reviewed Assignment 2 Part 1 feature was merged normally into `main` and published. The assessed merge preserves the earlier Assignment 1 history and the separately reviewed feature commit.
 
 ## Startup and safe configuration
 
@@ -98,13 +98,17 @@ Detailed commands, live-versus-mocked labels, expected-versus-observed notes, co
 
 ## Screenshots
 
-These repository publication-target links will become public after the reviewed Assignment 2 Part 1 files are committed, merged, and pushed:
+These public repository links show credential-free browser evidence from the reviewed implementation:
 
 - [Successful ZIP results with list, map, center, and attribution](https://github.com/srinidhid2004-design/expedia-lite/blob/main/screenshots/assignment-2-part-1-live-list-map.png)
 - [Synchronized selected hotel in the list and map](https://github.com/srinidhid2004-design/expedia-lite/blob/main/screenshots/assignment-2-part-1-synchronized-selection.png)
 - [Representative invalid-input feedback](https://github.com/srinidhid2004-design/expedia-lite/blob/main/screenshots/assignment-2-part-1-invalid-zip.png)
 
 The browser’s tall-element screenshot stitching can repeat content below the primary viewport when capturing the long table. The primary center, list, selected marker or popup, and attribution evidence remains visible; result counts were also verified independently.
+
+## Public demo
+
+The [public demo video](https://drive.google.com/file/d/1HIHOgmqgaugYnmLFjktFhjwINth2j6fC/view?usp=sharing) shows the published Assignment 2 Part 1 interface. It demonstrates the preserved Assignment 1 page, invalid ZIP feedback, a successful ZIP `16802` search, the returned search center, nearby-hotel list and Leaflet map, list-to-marker selection, marker-to-list selection, and visible map/data attribution. The Google Drive viewer was checked without an authenticated session and displayed the recording preview without an additional access request.
 
 ## Limitations and next work
 
@@ -114,7 +118,7 @@ The browser’s tall-element screenshot stitching can repeat content below the p
 - OpenStreetMap Standard tiles are appropriate for this local, low-volume classroom demonstration, not guaranteed production service.
 - The application has no authentication, payments, taxes, fees, or real reservations.
 - Assignment 2 Part 2 shortlist persistence and chatbot/RAG behavior are not implemented.
-- The assessed commit and live demo-video link remain pending final review.
+- Assignment 2 Part 2 shortlist persistence and chatbot/RAG behavior remain future work and were not introduced into this assessed Part 1 checkpoint.
 
 ## AI assistance disclosure
 
@@ -130,4 +134,5 @@ Selected prompt records connect requirements to decisions, code, and verificatio
 - Route and list decision: preserve leading zeros and treat zero hotels as a successful empty result — [Prompt 14: route and list](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/14-hotel-discovery-route-and-list.md).
 - Map decision: use one shared selection state for rows and markers — [Prompt 15: list/map synchronization](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/15-leaflet-list-map-synchronization.md).
 - Verification decision: one live search, mocked failures, regression check, credential scan, and screenshots — [Prompt 16: AutoLoop verification](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/16-assignment-2-part-1-verification.md).
-- Disclosure and report decision: document the model transparently and keep assessed commit/video pending — [Prompt 17: documentation checkpoint](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/17-assignment-2-part-1-documentation.md).
+- Disclosure and report decision: document the model transparently and identify the then-unresolved assessed-commit and video fields — [Prompt 17: documentation checkpoint](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/17-assignment-2-part-1-documentation.md).
+- Publication decision: add the assessed merge, public demo, link audit, and documentation-only final commit — [Prompt 18: publication finalization](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/18-assignment-2-part-1-publication-finalization.md).
