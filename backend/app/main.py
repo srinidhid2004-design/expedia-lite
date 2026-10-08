@@ -19,6 +19,7 @@ from .booking_data import (
 from .config import PROJECT_ROOT_ENV_PATH, geoapify_key_status
 from .database import DATABASE_PATH
 from .hotel_discovery import (
+    DiscoveredHotel,
     HotelDiscoveryProviderError,
     HotelDiscoveryRateLimitError,
     discover_hotels_by_zip,
@@ -26,8 +27,16 @@ from .hotel_discovery import (
 from .location_controller import (
     GeoapifyConfigurationError,
     GeoapifyRequestError,
+    ZipLocation,
     ZipLookupUnresolvedError,
     lookup_zip_location,
+)
+from .saved_hotel_data import (
+    SavedHotelNotFoundError,
+    SavedHotelValidationError,
+    list_saved_hotels_for_postcode,
+    remove_saved_hotel,
+    save_hotel,
 )
 from .travel_data import TravelDataError, search_hotel_stays
 
@@ -35,6 +44,23 @@ from .travel_data import TravelDataError, search_hotel_stays
 class BookingCreate(BaseModel):
     user_id: str
     trip_id: str
+
+
+class SavedSearchContextCreate(BaseModel):
+    postcode: str
+    country_code: str
+    latitude: float
+    longitude: float
+    locality: str | None = None
+
+
+class SavedHotelCreate(BaseModel):
+    provider_place_id: str
+    latitude: float
+    longitude: float
+    name: str | None = None
+    formatted_address: str | None = None
+    search_context: SavedSearchContextCreate
 
 
 def create_app(
@@ -153,6 +179,64 @@ def create_app(
             ) from exc
 
         return result.to_dict()
+
+    @application.get("/api/hotels/saved")
+    def saved_hotels(
+        postcode: Annotated[
+            str,
+            Query(description="Exactly five ASCII digits"),
+        ],
+    ) -> dict[str, object]:
+        try:
+            result = list_saved_hotels_for_postcode(
+                postcode,
+                database_path,
+            )
+        except SavedHotelValidationError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return result.to_dict()
+
+    @application.post("/api/hotels/saved")
+    def post_saved_hotel(request: SavedHotelCreate) -> dict[str, object]:
+        try:
+            result = save_hotel(
+                DiscoveredHotel(
+                    provider_place_id=request.provider_place_id,
+                    name=request.name,
+                    formatted_address=request.formatted_address,
+                    latitude=request.latitude,
+                    longitude=request.longitude,
+                ),
+                ZipLocation(
+                    postcode=request.search_context.postcode,
+                    country_code=request.search_context.country_code,
+                    locality=request.search_context.locality,
+                    latitude=request.search_context.latitude,
+                    longitude=request.search_context.longitude,
+                ),
+                database_path,
+            )
+        except SavedHotelValidationError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return result.to_dict()
+
+    @application.delete("/api/hotels/saved")
+    def delete_saved_hotel(
+        hotel_id: Annotated[
+            str,
+            Query(description="Exact provider place identifier"),
+        ],
+    ) -> dict[str, str]:
+        try:
+            deleted_hotel_id = remove_saved_hotel(
+                hotel_id,
+                database_path,
+            )
+        except SavedHotelValidationError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except SavedHotelNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return {"deleted_hotel_id": deleted_hotel_id}
 
     @application.get("/api/hotels/search")
     def search_hotels(

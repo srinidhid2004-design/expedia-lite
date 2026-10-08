@@ -8,9 +8,11 @@ import {
   createBooking,
   deleteBooking,
   findHotelStays,
-  findNearbyHotels,
+  findHotelsLocalFirst,
   getBookingHistory,
   getTravelers,
+  removeSavedHotel,
+  saveHotelLocally,
 } from './services/travelApi'
 
 const hotelName = ref('')
@@ -26,6 +28,10 @@ const selectedPlaceId = ref('')
 const isZipLookupLoading = ref(false)
 const zipValidationError = ref('')
 const zipLookupError = ref('')
+const savedPlaceIds = ref(new Set())
+const activeLocalHotelAction = ref('')
+const localHotelMessage = ref('')
+const localHotelError = ref('')
 const hotelRowElements = new Map()
 
 const travelers = ref([])
@@ -41,6 +47,7 @@ const selectedTraveler = computed(() =>
 )
 
 const nearbyHotels = computed(() => hotelDiscovery.value?.hotels || [])
+const isLocalDiscovery = computed(() => hotelDiscovery.value?.source === 'local')
 
 const discoveryStatus = computed(() => {
   if (isZipLookupLoading.value) {
@@ -53,10 +60,16 @@ const discoveryStatus = computed(() => {
     return 'Enter a five-digit U.S. ZIP code to find nearby hotels.'
   }
   if (nearbyHotels.value.length === 0) {
+    if (isLocalDiscovery.value) {
+      return `No saved hotels remain for ZIP ${hotelDiscovery.value.search_center.postcode}. Search again to check API results.`
+    }
     return `No usable nearby hotels were returned within 5 km of ZIP ${hotelDiscovery.value.search_center.postcode}.`
   }
   const hotelLabel = nearbyHotels.value.length === 1 ? 'hotel' : 'hotels'
-  return `${nearbyHotels.value.length} nearby ${hotelLabel} returned by Geoapify.`
+  if (isLocalDiscovery.value) {
+    return `${nearbyHotels.value.length} ${hotelLabel} loaded from the saved local subset.`
+  }
+  return `${nearbyHotels.value.length} nearby ${hotelLabel} returned as API results.`
 })
 
 const resultMessage = computed(() => {
@@ -84,6 +97,14 @@ const formatCurrency = (amount) =>
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(amount)
+
+const formatDemoRate = (amountInCents) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amountInCents / 100)
 
 const formatDate = (value) =>
   new Intl.DateTimeFormat('en-US', {
@@ -127,6 +148,8 @@ async function lookupZip() {
   selectedPlaceId.value = ''
   zipValidationError.value = ''
   zipLookupError.value = ''
+  localHotelMessage.value = ''
+  localHotelError.value = ''
 
   if (!/^[0-9]{5}$/.test(postcode)) {
     zipValidationError.value = 'Enter exactly five digits for a U.S. ZIP code.'
@@ -135,12 +158,104 @@ async function lookupZip() {
 
   isZipLookupLoading.value = true
   try {
-    hotelDiscovery.value = await findNearbyHotels(postcode)
+    hotelDiscovery.value = await findHotelsLocalFirst(postcode)
+    savedPlaceIds.value = new Set(
+      hotelDiscovery.value.saved_provider_ids || [],
+    )
     selectedPlaceId.value = hotelDiscovery.value.hotels[0]?.provider_place_id || ''
   } catch (error) {
     zipLookupError.value = error.message
   } finally {
     isZipLookupLoading.value = false
+  }
+}
+
+function isHotelSaved(providerPlaceId) {
+  return savedPlaceIds.value.has(providerPlaceId)
+}
+
+async function addHotelToLocal(hotel) {
+  if (
+    !hotelDiscovery.value?.search_center
+    || isHotelSaved(hotel.provider_place_id)
+    || activeLocalHotelAction.value
+  ) return
+
+  localHotelMessage.value = ''
+  localHotelError.value = ''
+  activeLocalHotelAction.value = `save-${hotel.provider_place_id}`
+  try {
+    const response = await saveHotelLocally(
+      hotel,
+      hotelDiscovery.value.search_center,
+    )
+    savedPlaceIds.value = new Set([
+      ...savedPlaceIds.value,
+      hotel.provider_place_id,
+    ])
+    hotelDiscovery.value = {
+      ...hotelDiscovery.value,
+      hotels: hotelDiscovery.value.hotels.map((result) => (
+        result.provider_place_id === hotel.provider_place_id
+          ? { ...result, ...response.hotel }
+          : result
+      )),
+    }
+    localHotelMessage.value = (
+      `${hotel.name || 'The selected hotel'} was saved locally. `
+      + 'Its October 10–14 rates and room counts are simulated classroom data.'
+    )
+  } catch (error) {
+    localHotelError.value = error.message
+  } finally {
+    activeLocalHotelAction.value = ''
+  }
+}
+
+async function removeHotelFromLocal(hotel) {
+  if (!isHotelSaved(hotel.provider_place_id) || activeLocalHotelAction.value) return
+
+  localHotelMessage.value = ''
+  localHotelError.value = ''
+  activeLocalHotelAction.value = `remove-${hotel.provider_place_id}`
+  try {
+    await removeSavedHotel(hotel.provider_place_id)
+    const updatedSavedIds = new Set(savedPlaceIds.value)
+    updatedSavedIds.delete(hotel.provider_place_id)
+    savedPlaceIds.value = updatedSavedIds
+
+    if (isLocalDiscovery.value) {
+      const remainingHotels = hotelDiscovery.value.hotels.filter(
+        (result) => result.provider_place_id !== hotel.provider_place_id,
+      )
+      hotelDiscovery.value = {
+        ...hotelDiscovery.value,
+        count: remainingHotels.length,
+        hotels: remainingHotels,
+      }
+      if (selectedPlaceId.value === hotel.provider_place_id) {
+        selectedPlaceId.value = remainingHotels[0]?.provider_place_id || ''
+      }
+    } else {
+      hotelDiscovery.value = {
+        ...hotelDiscovery.value,
+        hotels: hotelDiscovery.value.hotels.map((result) => {
+          if (result.provider_place_id !== hotel.provider_place_id) return result
+          const updated = { ...result }
+          delete updated.saved_locally
+          delete updated.demo_nights
+          delete updated.simulated_data_notice
+          return updated
+        }),
+      }
+    }
+    localHotelMessage.value = (
+      `${hotel.name || 'The selected hotel'} was removed from local storage.`
+    )
+  } catch (error) {
+    localHotelError.value = error.message
+  } finally {
+    activeLocalHotelAction.value = ''
   }
 }
 
@@ -301,8 +416,9 @@ onMounted(loadTravelers)
           <p class="eyebrow">Live hotel discovery</p>
           <h2 id="zip-demo-title">Find hotels near a ZIP code</h2>
           <p class="section-copy">
-            Resolve an exact five-digit U.S. ZIP and request up to 20 provider
-            hotel records within a 5 km circle. Results are not an exhaustive inventory.
+            Check saved local hotels for an exact five-digit U.S. ZIP first. When
+            none are saved for that ZIP, request up to 20 provider hotel records
+            within a 5 km circle. Neither result set is a complete inventory.
           </p>
         </div>
 
@@ -338,6 +454,16 @@ onMounted(loadTravelers)
           </p>
         </form>
 
+        <p
+          v-if="localHotelMessage || localHotelError"
+          class="local-storage-feedback"
+          :class="{ 'zip-error': localHotelError }"
+          role="status"
+          aria-live="polite"
+        >
+          {{ localHotelError || localHotelMessage }}
+        </p>
+
         <div v-if="hotelDiscovery" class="discovery-summary">
           <h3>Returned search center</h3>
           <div class="zip-table-wrap">
@@ -363,7 +489,16 @@ onMounted(loadTravelers)
             </table>
           </div>
 
-          <p class="provider-note">
+          <p v-if="isLocalDiscovery" class="provider-note">
+            <strong>Saved locally.</strong> This stored subset is not a complete
+            hotel inventory. Hotel identity and location fields originated from
+            <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">
+              Geoapify
+            </a>;
+            dated rates and room counts are simulated classroom data.
+          </p>
+          <p v-else class="provider-note">
+            <strong>API results.</strong>
             Up to {{ hotelDiscovery.result_limit }} hotel records within
             {{ hotelDiscovery.search_radius_meters / 1000 }} km.
             <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">
@@ -384,9 +519,12 @@ onMounted(loadTravelers)
                 <thead>
                   <tr>
                     <th scope="col">Hotel</th>
+                    <th scope="col">Source</th>
                     <th scope="col">Address</th>
                     <th scope="col">Coordinates</th>
                     <th scope="col">Distance</th>
+                    <th scope="col">Demo nights</th>
+                    <th scope="col">Local storage</th>
                     <th scope="col">Selection</th>
                   </tr>
                 </thead>
@@ -402,6 +540,14 @@ onMounted(loadTravelers)
                       <strong>{{ hotel.name || 'Name unavailable' }}</strong>
                       <span class="record-id">{{ hotel.provider_place_id }}</span>
                     </td>
+                    <td>
+                      <span
+                        class="source-pill"
+                        :class="isLocalDiscovery ? 'source-local' : 'source-api'"
+                      >
+                        {{ isLocalDiscovery ? 'Saved locally' : 'API results' }}
+                      </span>
+                    </td>
                     <td>{{ hotel.formatted_address || 'Address not provided' }}</td>
                     <td>
                       <span>{{ hotel.latitude }}</span>
@@ -413,6 +559,63 @@ onMounted(loadTravelers)
                           ? 'Not provided'
                           : `${Math.round(hotel.distance_meters)} m`
                       }}
+                    </td>
+                    <td>
+                      <div v-if="hotel.demo_nights?.length">
+                        <ul class="demo-night-list">
+                          <li v-for="night in hotel.demo_nights" :key="night.stay_date">
+                            <span>{{ formatDate(night.stay_date) }}</span>
+                            <strong>{{ formatDemoRate(night.nightly_rate_cents) }}</strong>
+                            <span>
+                              {{ night.rooms_available }} simulated
+                              {{ night.rooms_available === 1 ? 'room' : 'rooms' }}
+                            </span>
+                          </li>
+                        </ul>
+                        <span class="simulated-label">Simulated classroom data</span>
+                      </div>
+                      <span v-else class="muted-cell">
+                        {{
+                          isHotelSaved(hotel.provider_place_id)
+                            ? 'Saved under another ZIP; search that ZIP for demo nights.'
+                            : 'Available after local save.'
+                        }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="local-hotel-actions">
+                        <button
+                          v-if="!isLocalDiscovery"
+                          class="action-button secondary"
+                          type="button"
+                          :disabled="
+                            isHotelSaved(hotel.provider_place_id)
+                            || Boolean(activeLocalHotelAction)
+                          "
+                          @click="addHotelToLocal(hotel)"
+                        >
+                          {{
+                            activeLocalHotelAction === `save-${hotel.provider_place_id}`
+                              ? 'Saving…'
+                              : isHotelSaved(hotel.provider_place_id)
+                                ? 'Saved locally'
+                                : 'Add to Local'
+                          }}
+                        </button>
+                        <button
+                          v-if="isHotelSaved(hotel.provider_place_id)"
+                          class="action-button danger"
+                          type="button"
+                          :disabled="Boolean(activeLocalHotelAction)"
+                          @click="removeHotelFromLocal(hotel)"
+                        >
+                          {{
+                            activeLocalHotelAction === `remove-${hotel.provider_place_id}`
+                              ? 'Removing…'
+                              : 'Remove from Local'
+                          }}
+                        </button>
+                      </div>
                     </td>
                     <td>
                       <button
@@ -430,7 +633,10 @@ onMounted(loadTravelers)
             </div>
             <div v-else class="no-nearby-hotels" role="status">
               <span class="empty-icon" aria-hidden="true">⌕</span>
-              <p>No usable hotel records were returned inside the 5 km search area.</p>
+              <p v-if="isLocalDiscovery">
+                No saved hotels remain for this ZIP. Search again to check API results.
+              </p>
+              <p v-else>No usable hotel records were returned inside the 5 km search area.</p>
             </div>
           </div>
 

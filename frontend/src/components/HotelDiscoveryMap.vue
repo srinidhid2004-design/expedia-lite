@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
   <section class="hotel-map-panel" aria-labelledby="hotel-map-title">
     <div class="hotel-map-heading">
       <div>
-        <p class="eyebrow">Same provider results</p>
+        <p class="eyebrow">Same displayed results</p>
         <h3 id="hotel-map-title">Hotel map</h3>
       </div>
       <p>

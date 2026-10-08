@@ -18,3 +18,4 @@
 16. [`16-assignment-2-part-1-verification.md`](16-assignment-2-part-1-verification.md)
 17. [`17-assignment-2-part-1-documentation.md`](17-assignment-2-part-1-documentation.md)
 18. [`18-assignment-2-part-1-publication-finalization.md`](18-assignment-2-part-1-publication-finalization.md)
+19. [`19-local-hotel-storage-manual-verification.md`](19-local-hotel-storage-manual-verification.md)

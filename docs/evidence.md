@@ -449,3 +449,74 @@ Related prompt: [`18-assignment-2-part-1-publication-finalization.md`](../prompt
 - Public links were checked for the report, assessed commit, research note, early mockup, evidence log, three screenshots, prompt index, and project documentation.
 - The report and linked project artifacts contain no configured credential or local `.env` contents. The early mockup labels its generic hotel names and addresses as illustrative provider-field placeholders; the implementation and evidence use only provider-returned or explicitly mocked/placeholder data and make no unsupported commercial claim.
 - No application source, dependency declaration, instructor data, generated runtime data, or Canvas content was changed or accessed during this documentation-only finalization.
+
+## 2026-10-08 — Local Hotel Storage manual verification
+
+Related prompt: [`19-local-hotel-storage-manual-verification.md`](../prompts/19-local-hotel-storage-manual-verification.md).
+
+This checkpoint records the user’s completed manual DB Browser and visible-browser review separately from the automated checks. The activity remained on `assignment2_part2_in_class`; no commit, merge, or push was authorized.
+
+### User-reported manual observations
+
+Observation date: **October 8, 2026**. The database inspected was the ignored runtime file `backend/expedia_lite.sqlite3`.
+
+| Action | Expected result | User-observed result |
+| --- | --- | --- |
+| Search ZIP `16802` and save `Scholar Hotel State College` | Store the exact provider hotel once, preserve its searched ZIP and returned location context separately, and create five demo-night rows | `saved_hotels` contained the provider identity/location; `saved_hotel_zip_associations` connected it to `16802`; `saved_search_contexts` contained State College, `US`, and the returned coordinates; `demo_hotel_nights` contained October 10–14, 2026 |
+| Inspect the new demo rows | Every new date begins at 10,000 cents and 20 rooms and is labeled simulated classroom data | All five dates initially contained `10000` cents and `20` rooms |
+| Refresh and repeat ZIP `16802` | Local matches stop provider fallback and reload after refresh | One hotel loaded from the saved local subset and the interface displayed `Saved locally` |
+| In DB Browser, change October 10 to 50 cents and 10 rooms, then select **Write Changes** | A repeat search reads the stored values without a repeat save overwriting them | October 10 displayed `$0.50` and `10 simulated rooms`; October 11–14 remained `$100.00` and `20 simulated rooms` |
+| Select **Remove from Local** | Delete the selected hotel, its ZIP associations, and its demo nights while preserving unrelated records | The saved hotel and related local rows were removed; unrelated Assignment 1 data remained |
+| Repeat ZIP `16802` after removal | A successful empty local lookup permits the preserved provider workflow | The interface returned to labeled `API results` |
+
+Credential-free visual evidence:
+
+- [`local-hotel-storage-manual-rate-edit.png`](../screenshots/local-hotel-storage-manual-rate-edit.png) shows `Saved locally`, the incomplete-inventory and simulated-data explanations, October 10 at `$0.50` with 10 simulated rooms, October 11–14 at `$100.00` with 20 simulated rooms, and the `Remove from Local` control.
+- [`local-hotel-storage-db-rate-edit.png`](../screenshots/local-hotel-storage-db-rate-edit.png) shows the five `demo_hotel_nights` rows in DB Browser, including the manual October 10 values of 50 cents and 10 rooms.
+- [`local-hotel-storage-db-after-removal.png`](../screenshots/local-hotel-storage-db-after-removal.png) shows the refreshed `saved_hotels` table empty after removal.
+- [`local-hotel-storage-api-results-after-removal.png`](../screenshots/local-hotel-storage-api-results-after-removal.png) shows the repeated ZIP `16802` search labeled `API results` after removal.
+
+The screenshots support the saved state, edited demo value, empty saved-hotel view, and provider fallback. They do not independently show every related table or the network sequence; those details are labeled as the user’s manual observations and are supplemented by the read-only query below.
+
+The user confirmed that no API key or `.env` contents appeared in the evidence. Visual review found no credential, environment content, or provider URL containing a credential. The two DB Browser screenshots retain the supplied application title bar, which displays the local project database path; they contain no secret value.
+
+### Removal recheck and discrepancy resolution
+
+An earlier read-only audit found a lingering saved Scholar Hotel record after the first reported removal. The user then repeated **Remove from Local**, repeated ZIP `16802`, observed `API results`, and refreshed DB Browser. A subsequent read-only query on October 8, 2026 confirmed the current ignored runtime-database state without changing it:
+
+- `saved_hotels`: 0 rows
+- `saved_search_contexts`: 0 rows
+- `saved_hotel_zip_associations`: 0 rows
+- `demo_hotel_nights`: 0 rows
+- preserved Assignment 1 tables: 8 hotels, 12 trips, 6 users, and 11 bookings
+
+The current database therefore corroborates the repeated removal and provider fallback. The earlier discrepancy is resolved; no database row was added, changed, or removed by Codex during this recheck.
+
+### Automated review checkpoint
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Observed: **69 passed** with two previously documented, non-failing upstream FastAPI/Starlette test-client deprecation warnings.
+
+Frontend commands, run from `frontend/`:
+
+```powershell
+node --test .\tests\travelApi.test.js
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd . --no-cache
+npm run build
+```
+
+Observed: all **3 local-first request tests passed**; Oxlint and ESLint passed without findings; and the Vite production build passed. The request tests verify that saved matches stop the workflow, a successful empty local result permits provider fallback, and a local-storage failure does not call the provider route.
+
+Root command:
+
+```powershell
+git diff --check
+```
+
+Observed: passed without whitespace errors. Git emitted only working-copy LF-to-CRLF advisories. The project-root `.env`, generated SQLite database, `backend/.venv`, `frontend/node_modules`, and `frontend/dist` remained ignored and untracked.

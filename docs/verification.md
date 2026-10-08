@@ -1,4 +1,4 @@
-# Assignment 2 Part 1 verification
+# Assignment 2 verification
 
 Run checks from the project root without installing or upgrading dependencies. Use `backend/.venv` for every backend command. Do not display `.env`, an API key, or a provider URL that contains credentials.
 
@@ -10,6 +10,7 @@ cd backend
 .\.venv\Scripts\python.exe -B -m pytest .\tests\test_hotel_discovery.py -q -p no:cacheprovider
 
 cd ..\frontend
+node --test .\tests\travelApi.test.js
 .\node_modules\.bin\oxlint.cmd .
 .\node_modules\.bin\eslint.cmd . --no-cache
 npm run build
@@ -21,12 +22,28 @@ git diff --check
 Expected:
 
 - the complete backend suite passes, including preserved Assignment 1 behavior;
+- temporary-database tests pass for repeat saves, non-overwriting demo nights, ZIP-scoped retrieval, transactional removal, rollback after failure, and safe route errors;
+- the three request-layer tests prove saved matches stop the workflow, successful empty local results permit provider fallback, and local failures prohibit provider fallback;
 - the focused discovery suite uses mocks or the credential-free fixture and passes success, missing optional fields, zero results, malformed data, timeout/provider failure, rate limiting, missing configuration, and unresolved exact ZIP cases;
 - Oxlint and ESLint report no findings;
 - Vite builds ignored output under `frontend/dist/`; and
 - the working diff has no whitespace errors.
 
-The final recorded run produced 57 passing backend tests and 9 passing focused discovery tests. Two upstream FastAPI/Starlette test-client deprecation warnings were non-failing.
+The current local-storage checkpoint produced 69 passing backend tests and three passing local-first request tests. Two upstream FastAPI/Starlette test-client deprecation warnings were non-failing.
+
+## Local API-hotel persistence check
+
+Use a temporary database for automated mutation checks. For manual review, use the ignored `backend/expedia_lite.sqlite3` file and test records that you are prepared to remove through the interface; never edit Assignment 1 rows manually.
+
+1. Search a ZIP with no saved associations. In the Network panel, expect `GET /api/hotels/saved` to complete successfully with zero matches before `GET /api/hotels/nearby` begins.
+2. Select `Add to Local` on one API result. Expect backend success before the button becomes disabled or the row is marked saved.
+3. Confirm five dates—October 10 through October 14, 2026—appear with `$100.00` and 20 rooms, all labeled simulated classroom data.
+4. Search the same ZIP again or refresh and repeat the search. Expect the saved subset from `GET /api/hotels/saved`; the provider endpoint must not be requested.
+5. Confirm the saved subset is labeled `Saved locally` and explicitly says it is not a complete inventory.
+6. Use `Remove from Local`. Expect the row and marker to change only after backend success. Confirm that only its saved hotel, ZIP associations, and five demo rows were removed.
+7. Repeat with two saved hotels sharing one ZIP. Removing one must preserve the other hotel and the still-used ZIP context.
+
+For a controlled failure, use the temporary-database rollback test rather than altering the project database. The test installs a temporary trigger that aborts the hotel-row deletion after child-row deletes begin; the transaction must roll back so the hotel, association, and all five nights remain.
 
 ## Configuration and credential checks
 
@@ -84,6 +101,11 @@ Use the automated mocks or fixed fixture—not additional live quota—to verify
 | Malformed provider response | Safe malformed/provider failure, not a false zero-result success. |
 | Rate or quota limit | Distinct retry-later response and HTTP 429 mapping. |
 | Missing configuration | Safe unavailable/configuration response without exposing a value. |
+| Saved local matches | Display only the stored subset and do not request the provider endpoint. |
+| Empty local lookup | Proceed to the existing provider search. |
+| Local database failure | Show a safe local error and do not request the provider endpoint. |
+| Repeated save | Keep one hotel, one ZIP association, and five dates without overwriting stored demo values. |
+| Remove failure | Show useful feedback and leave database/UI saved state unchanged. |
 
 Restore normal behavior after any browser-level mock.
 
@@ -98,5 +120,6 @@ Save only credential-free screenshots under project-root `screenshots/`:
 - `assignment-2-part-1-live-list-map.png`
 - `assignment-2-part-1-synchronized-selection.png`
 - `assignment-2-part-1-invalid-zip.png`
+- `local-hotel-storage-manual-rate-edit.png`
 
 Record each action, expected result, observed result, live-versus-mocked label, correction, and limitation in `docs/evidence.md`. Unless the user asks to keep the app running, stop only service processes whose command lines prove they belong to this project and confirm the relevant ports are released.
