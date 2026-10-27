@@ -1,20 +1,18 @@
-# Expedia Lite — Assignment 2, Part 1
+# Expedia Lite — Assignment 2, Part 2
 
-## Repository and submission status
+## Project and repository access
 
 Public repository: [https://github.com/srinidhid2004-design/expedia-lite](https://github.com/srinidhid2004-design/expedia-lite)
 
-Assessed Assignment 2 Part 1 merge commit: [`6c0575d092ad677b3ec25a6bdaa10aa7739fad29`](https://github.com/srinidhid2004-design/expedia-lite/commit/6c0575d092ad677b3ec25a6bdaa10aa7739fad29) (`Merge Assignment 2 Part 1`).
+Assessed Assignment 2 Part 2 implementation: [`007aea0429ed3ce8abc0cfc4ff6e7401f24cb810`](https://github.com/srinidhid2004-design/expedia-lite/commit/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810) (`Merge Assignment 2 Part 2 RAG workflow`). This two-parent merge commit is the assessed application implementation. The later commit that finalizes this report changes documentation only and does not replace the assessed implementation commit.
 
-Live demo video: [Expedia Lite — Assignment 2 Part 1 demonstration](https://drive.google.com/file/d/1HIHOgmqgaugYnmLFjktFhjwINth2j6fC/view?usp=sharing).
+Public demo video: [Assignment 2 part 2 demo.mp4](https://drive.google.com/file/d/1zhnSblbBfTXlPtfD9Oh8gHV-tCraqoQn/view?usp=sharing)
 
-Project records: [README.md](https://github.com/srinidhid2004-design/expedia-lite/blob/main/README.md), [AGENTS.md](https://github.com/srinidhid2004-design/expedia-lite/blob/main/AGENTS.md), [design](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/design.md), [research](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-1-research.md), [early mockup](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-1-mockup.svg), [verification procedure](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/verification.md), [evidence log](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/evidence.md), [prompt index](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/README.md), and [current handoff](https://github.com/srinidhid2004-design/expedia-lite/blob/main/handoffs/current.md).
-
-The reviewed Assignment 2 Part 1 feature was merged normally into `main` and published. The assessed merge preserves the earlier Assignment 1 history and the separately reviewed feature commit.
+Project records: [README](https://github.com/srinidhid2004-design/expedia-lite/blob/main/README.md), [project rules](https://github.com/srinidhid2004-design/expedia-lite/blob/main/AGENTS.md), [design](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/design.md), [verification procedure](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/verification.md), [evidence log](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/evidence.md), [prompt index](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/README.md), and [current handoff](https://github.com/srinidhid2004-design/expedia-lite/blob/main/handoffs/current.md).
 
 ## Startup and safe configuration
 
-Create the Python virtual environment, install the declared backend requirements, and install the locked frontend dependencies:
+From the project root, create the backend virtual environment and install the declared backend and locked frontend dependencies:
 
 ```powershell
 python -m venv backend/.venv
@@ -24,115 +22,161 @@ npm install
 cd ..
 ```
 
-Create a project-root `.env` file beside `backend/` and `frontend/` with this setting:
+Use the blank, tracked [`.env.example`](https://github.com/srinidhid2004-design/expedia-lite/blob/main/.env.example) as the variable-name template for an ignored project-root `.env`. The required backend-only variable names are `GEOAPIFY_API_KEY` and `GEMINI_API_KEY`. Supply values only in the local ignored file; never place them in Vue, `VITE_` variables, documentation, screenshots, logs, fixtures, or Git. Restart FastAPI after changing local configuration.
 
-```dotenv
-GEOAPIFY_API_KEY=your-key-here
+Start the backend and frontend in separate terminals:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -B -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-The `.env` file is ignored. The key must not be placed in Vue, a `VITE_` variable, documentation, screenshots, fixtures, logs, or Git. `backend/app/config.py` reads it through an explicit backend path, and `/api/health` reports only whether a nonblank value is configured. FastAPI must be restarted after `.env` changes.
+```powershell
+cd frontend
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+```
 
-Start FastAPI on `127.0.0.1:8000` and Vue on `127.0.0.1:5173` using the commands in the public [README](https://github.com/srinidhid2004-design/expedia-lite/blob/main/README.md). The application page is `http://127.0.0.1:5173/`; FastAPI’s root `/` intentionally has no page, while `/api/health` is the backend health endpoint.
+The Vue application is at `http://127.0.0.1:5173/`; the backend health endpoint is `http://127.0.0.1:8000/api/health`. Health reports configuration status only, never secret values. The runtime provider is fixed to Google Gemini API model `gemini-3.5-flash-lite`, with zero automatic retries and no provider or model fallback.
 
-## Research, observations, and adopted decisions
+## Research and early design
 
-Primary sources were accessed October 7, 2026. Full notes are in the [research document](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-1-research.md).
+The [Part 2 research](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-2-research.md) records direct primary-source links and access dates for Gemini structured output and limits, SQLite read-only controls, bounded SQL-generation practices, accessible chatbot states, and grounded answers. The [early annotated mockup](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-2-rag-mockup.svg) shows the planned question, loading, proposed-SQL, retrieved-record, answer, no-match, rejected-query, provider-error, and simulated-data states while preserving the existing hotel workflow.
 
-| Source | Observation or weakness | Expedia Lite decision |
-| --- | --- | --- |
-| [Geoapify Geocoding API](https://apidocs.geoapify.com/docs/geocoding/) | Postcodes need a country context and a geocoder may otherwise return a nearby or differently formatted result. | Send a structured postcode with `type=postcode`, `filter=countrycode:us`, and `format=json`; accept only an exact requested U.S. postcode with valid coordinates. |
-| [Geoapify Places API](https://apidocs.geoapify.com/docs/places/) | Proximity bias affects order but is not a geographic boundary; provider fields can be optional. | Request `accommodation.hotel` with a strict `circle:longitude,latitude,5000` filter, matching proximity bias, `lang=en`, and `limit=20`; normalize only supported fields. |
-| [Geoapify pricing and attribution](https://www.geoapify.com/pricing/) | Requests consume quota and attribution is required; returned coverage is not a complete inventory guarantee. | Search only on explicit submit, block duplicate submission while loading, show `Powered by Geoapify`, and call the result one bounded provider page rather than “all hotels.” |
-| [Leaflet Quick Start](https://leafletjs.com/examples/quick-start/) and [Leaflet API reference](https://leafletjs.com/reference.html) | Maps need an explicit height, managed layers, event handling, and cleanup. Independent list/map state can drift. | Use a focused Vue map component and one `selectedPlaceId` owned by the parent; update or clear layers with each search and remove the map on destruction. |
-| [OpenStreetMap Standard tile policy](https://operations.osmfoundation.org/policies/tiles/) and [copyright guidance](https://www.openstreetmap.org/copyright) | Standard tiles are best-effort, prohibit bulk/offline use, and require visible attribution. | Use Standard tiles only for this low-volume classroom demo, do not prefetch, preserve browser caching behavior, and visibly show `© OpenStreetMap contributors`. |
-| [Airbnb search-results explanation](https://www.airbnb.com/help/article/39) and [map-search help](https://www.airbnb.com/help/article/252) | A list/map layout helps spatial comparison, but commercial products may personalize, broaden, sponsor, or show map results that differ from the list. | Adopt the side-by-side comparison and selectable markers, but keep one identical bounded collection in both views and never silently broaden the 5 km search. |
+The adopted design is a two-request retrieval-augmented workflow: Request 1 proposes a parameterized read-only query; the backend independently validates and executes it against a bounded local saved-hotel view; Request 2 receives only the bounded question and retrieved classroom records and produces a grounded explanation. Provider schema constraints improve consistency but never replace backend validation.
 
-Weaknesses deliberately avoided include substituting a nearby postcode, treating a proximity bias as a radius, labeling provider failure as “no hotels,” silently dropping list/map synchronization, inventing missing fields, hiding attribution, and implying prices, ratings, availability, or exhaustive coverage.
+Important research decisions and risks were:
 
-## Early mockup and revised approach
+- Gemini REST structured output was selected because the earlier class free Nemotron endpoint did not reliably return a usable structured proposal.
+- Direct REST through the already declared `httpx` dependency avoids an unnecessary provider SDK.
+- Gemini unpaid-tier data may be used to improve Google products and may receive human review, so live checks use only non-confidential classroom data.
+- `mode=ro` and `PRAGMA query_only` are combined with a default-deny authorizer, strict allowlists, bound parameters, execution and payload bounds, and independent grounding checks; no one control is treated as sufficient.
 
-The approved [early annotated mockup](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/assignment-2-part-1-mockup.svg) established the five-digit ZIP input, loading and error states, accepted search center, responsive list/map layout, selected row and marker, and visible attribution. The final implementation preserved the cream, navy, and burnt-orange Expedia Lite visual language. During implementation, provider place IDs were shown with the rows for traceability, the result cap and omitted-record message were made explicit, and the separate center marker plus 5 km circle clarified why a hotel appeared.
+## Implemented workflow
 
-One revised approach began with the in-class fixed `Look up ZIP 16802` button. Its screenshot proved the first public API call but was insufficient for the final Part 1 rubric because it did not demonstrate user-entered input or the complete hotel list/map workflow. The panel was revised to use a labeled text ZIP input that preserves leading zeros, semantic tables, distinct feedback states, nearby-hotel discovery, and synchronized Leaflet selection.
-
-A second correction concerned startup expectations: opening `http://127.0.0.1:8000/` produced the expected FastAPI `404 Not Found` response because the backend has no root page. Verification was corrected to use port 8000 at `/api/health` and to open the actual Vue application on port 5173.
-
-## Implementation responsibilities and data flow
-
-The browser keeps the ZIP as text, validates exactly five digits, and calls only the local FastAPI route through Vite’s `/api` proxy. `backend/app/location_controller.py` resolves the exact requested U.S. postcode. `backend/app/hotel_discovery.py` uses that verified coordinate as the center of a 5,000-meter Geoapify Places circle and returns up to 20 normalized hotels. `backend/app/main.py` provides the thin route and safe status mapping. It never returns the key, full provider URL, or raw exception.
-
-The provider-independent hotel result contains a provider place identifier, optional name, optional formatted address, valid latitude and longitude, and an optional valid distance. Missing names appear as `Name unavailable`; missing addresses appear as `Address not provided`. Records without a stable identifier or valid coordinates are omitted because they cannot participate honestly in synchronized list/map behavior.
-
-`frontend/src/services/travelApi.js` owns the local request. `frontend/src/App.vue` owns form, loading/error/result state, the sanitized center, the hotel table, and the single shared `selectedPlaceId`. `frontend/src/components/HotelDiscoveryMap.vue` owns Leaflet initialization, OpenStreetMap tiles, the distinct center marker, radius circle, hotel markers, popups, attribution, layer replacement, and destruction cleanup.
-
-Data flow:
+The browser sends only JSON containing the natural-language `question` to `POST /api/chatbot/query`. It cannot supply a model, endpoint, key, SQL, database path, prompt, or provider choice.
 
 ```text
-ZIP text → Vue validation → /api/hotels/nearby
-→ exact Geoapify postcode → verified point
-→ Geoapify Places accommodation.hotel within 5 km, limit 20
-→ typed normalization → sanitized FastAPI response
-→ one Vue collection rendered as list and map
-→ one provider place ID synchronizes selection both ways
+Natural-language question
+        ↓
+Gemini Request 1: schema-constrained SQL proposal and parameters
+        ↓
+Backend shape checks and unchanged read-only SQL validator
+        ↓
+Bounded read-only SQLite retrieval over saved-hotel tables
+        ↓
+zero rows → deterministic no-match response; Request 2 skipped
+        ↓ rows exist
+Gemini Request 2: original bounded question + retrieved records only
+        ↓
+Grounding and row-reference checks
+        ↓
+Vue trace and grounded answer
 ```
 
-Assignment 1’s SQLite hotel search and simulated booking behavior remains present and separate.
+The visible trace presents the bounded question, exact model, provider-request count, proposed SQL, safe parameters, retrieved columns and rows, grounded answer, explanation, referenced row numbers, limitation, and simulated-classroom-data notice. SQL rejected by the validator is shown as rejected evidence and is never described as executed.
 
-## Verification
+The chatbot builds on the reviewed local-storage workflow. A user may save provider hotels with their ZIP association and verified search context. Each newly saved hotel receives October 10–14, 2026 demo-night rows. These local nightly rates and room counts are simulated classroom data, not provider-supplied or real inventory. Local-first ZIP lookup continues to show the saved subset before falling back to the provider only when local lookup succeeds with zero matches.
 
-Observation date: **October 7, 2026**. Tested ZIP: **16802**.
+## Database and security controls
 
-| Action | Expected result | Observed result |
+Generated SQL is untrusted. Retrieval uses a separate verified SQLite `file:` URI with `mode=ro`, enables `PRAGMA query_only`, and installs a default-deny Python `sqlite3` authorizer. Reads are limited to approved columns in `saved_hotels`, `saved_hotel_zip_associations`, `saved_search_contexts`, and `demo_hotel_nights`; Assignment 1 users, bookings, SQLite metadata, temporary objects, unsafe functions, attachments, pragmas, and every mutation are denied.
+
+The validator requires exactly one bounded read-only statement, unnumbered `?` parameters for every value except the final top-level integer `LIMIT`, and a final limit from 1 through 20. It rejects comments, multiple statements, unauthorized tables or columns, unbound literals, writable or deceptive CTEs, and prohibited operations. A progress deadline bounds execution. Results are capped by row count, column count, cell size, and total serialized payload.
+
+Checkout is excluded. Every occupied night must exist and have positive `rooms_available`; missing nights are not treated as available. The backend derives date coverage and sums stored integer cents rather than trusting the model to invent or calculate facts. Tests prove rejected mutation proposals stop before execution and leave complete temporary-database snapshots unchanged.
+
+Both provider keys remain backend-only in the ignored `.env`. Browser responses, UI traces, fixtures, screenshots, and Git contain neither credentials nor raw provider messages.
+
+## Verification and evidence
+
+Detailed commands, live-versus-mocked labels, and expected-versus-observed results are in the public [evidence log](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/evidence.md) and [verification procedure](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/verification.md).
+
+### Real live Gemini success
+
+On October 20, 2026, one explicitly authorized live flow submitted this classroom question:
+
+> Among my saved hotels, which are available for both October 10 and October 11, 2026, and what is each hotel's total simulated cost for those two nights? Checkout is October 12, 2026.
+
+Request 1 proposed one read-only query using parameters `2026-10-10`, `2026-10-11`, `0`, and `2` in placeholder order and a final `LIMIT 20`. The unchanged validator accepted it. Retrieval returned exactly the two saved records relevant to the question:
+
+| Retrieved hotel | Included nights | Positive room requirement | Simulated total |
+| --- | --- | --- | ---: |
+| Hotel State College | October 10 and 11, 2026 | Met on both nights | 20,000 cents / $200.00 |
+| Scholar Hotel State College | October 10 and 11, 2026 | Met on both nights | 20,000 cents / $200.00 |
+
+October 12 was correctly excluded as checkout. Request 2 grounded its answer only in those two rows and referenced both rows. The trace recorded exactly two provider requests, and the runtime database SHA-256 and logical counts were identical before and after.
+
+Public-safe live screenshots tied to the assessed merge commit:
+
+- [Question and Gemini model](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-gemini-live-success-question-model.jpg)
+- [Proposed SQL and safe parameters](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-gemini-live-success-sql-parameters.jpg)
+- [Retrieved-record continuation](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-gemini-live-success-sql-parameters-continuation.jpg)
+- [Question and grounded answer](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-gemini-live-success-question-answer.jpg)
+- [Explanation, row references, and simulated-data notice](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-gemini-live-success-grounded-answer-evidence.jpg)
+
+### Fixed mocked negative cases
+
+These were credential-free fixed-fixture checks using fake keys, `httpx.MockTransport`, stubbed frontend requests, and temporary SQLite databases—not live Gemini calls.
+
+| Scenario | Expected result | Observed result |
 | --- | --- | --- |
-| Run the complete backend suite through `backend/.venv` | All Assignment 1, postcode, discovery, and route tests pass | 57 tests passed; two known upstream FastAPI/Starlette test-client deprecation warnings were non-failing |
-| Run the focused mocked discovery suite | Success fixture, missing optional fields, zero results, malformed data, timeout/provider failure, rate limit, missing configuration, and unresolved ZIP pass without live quota | 9 focused tests passed |
-| Run Oxlint, ESLint, production build, and `git diff --check` | No lint, build, or whitespace failure | All four checks passed; Vite 8.3.0 transformed 16 modules and built successfully |
-| Submit one live `16802` search | Exact U.S. postcode center and one bounded 5 km hotel page; no fixed result-count assumption | Center was State College, `US`, latitude `40.803167822`, longitude `-77.861384958`; the provider returned 20 usable records on that request |
-| Compare sanitized API, list, and map | Center matches; every normalized hotel appears once in the list and once as a hotel marker | 20 unique provider IDs in the list matched 20 hotel markers; the distinct center marker and 5 km circle were also visible |
-| Select a list result and then a different marker | Matching marker/popup and matching row identify the same shared provider place ID | Both directions passed; keyboard list activation and keyboard-operable markers also passed |
-| Check invalid, unresolved, zero-hotel, provider-failure, malformed, rate/quota, and missing-configuration states | Each state is safe and distinct; no extra live quota is consumed | Local validation, mocks, and the credential-free fixture produced the expected distinct outcomes |
-| Inspect attribution, narrow layout, and console | Required attribution is visible, the interface is usable at 390 × 844, and no application error appears | All checks passed; `Leaflet | © OpenStreetMap contributors` remained visible and the console had zero application errors or warnings |
-| Search `Harbor` in the preserved Assignment 1 form | Existing matching stays T001 and T009 remain operational | The visible interface returned both trip IDs |
+| `no_match_sql` | Request 1 proposes valid SQL; zero rows return `no_match`; Request 2 is skipped; no hotel, price, availability, or answer is invented | Passed with one provider request, zero rows, no answer, and an unchanged temporary database |
+| `mutation_sql` | A proposed `DELETE` reaches the unchanged validator and is rejected before execution; Request 2 is skipped | Passed with `rejected_sql`, one provider request, no records or answer, and an unchanged complete temporary-database snapshot |
 
-Detailed commands, live-versus-mocked labels, expected-versus-observed notes, corrections, and limitations are in the [evidence log](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/evidence.md).
+The repeatable negative-case instruction is [Prompt 21](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/21-assignment-2-part-2-negative-case-verification.md); the assertions and commands are recorded in the [evidence log](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/evidence.md) and [verification procedure](https://github.com/srinidhid2004-design/expedia-lite/blob/main/docs/verification.md).
 
-## Screenshots
+### Failed and revised approach
 
-These public repository links show credential-free browser evidence from the reviewed implementation:
+Three controlled attempts with the class-demonstrated free OpenRouter/Nemotron model repeatedly returned unusable Request 1 structured output. Each attempt failed safely before SQL execution: Request 2 was skipped and the database was unchanged. Compatibility work supported strict tool-call and complete-object forms without weakening the SQL validator, but the endpoint remained unreliable for this flow. The documented revision migrated the provider-specific transport to Gemini while preserving the provider-independent retrieval, route, UI, and security contracts.
 
-- [Successful ZIP results with list, map, center, and attribution](https://github.com/srinidhid2004-design/expedia-lite/blob/main/screenshots/assignment-2-part-1-live-list-map.png)
-- [Synchronized selected hotel in the list and map](https://github.com/srinidhid2004-design/expedia-lite/blob/main/screenshots/assignment-2-part-1-synchronized-selection.png)
-- [Representative invalid-input feedback](https://github.com/srinidhid2004-design/expedia-lite/blob/main/screenshots/assignment-2-part-1-invalid-zip.png)
+The first Gemini live attempt then exposed a GenerateContent request-structure issue, which was corrected against the documented REST contract. A later schema-valid proposal was correctly rejected because numeric SQL values had not been bound. Request 1 instructions were tightened so dates, the zero availability threshold, and the required-night count use parameters; the final live attempt then passed the unchanged validator. None of the failed attempts is presented as success, and no raw provider response or credential is retained.
 
-The browser’s tall-element screenshot stitching can repeat content below the primary viewport when capturing the long table. The primary center, list, selected marker or popup, and attribution evidence remains visible; result counts were also verified independently.
+Public-safe failed/revised evidence includes the [initial malformed Nemotron proposal](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-live-malformed-proposal.jpg), [later safe malformed-response classification](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-live-corrected-third-attempt-malformed-response.jpg), and [initial Gemini invalid-request evidence](https://github.com/srinidhid2004-design/expedia-lite/blob/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810/screenshots/assignment-2-part-2-gemini-live-failure-invalid-request.jpg).
+
+### Final automated regression
+
+| Check | Observed result |
+| --- | --- |
+| Complete backend pytest suite through `backend/.venv` | 196 passed; two known non-failing FastAPI/Starlette dependency deprecation warnings |
+| `pip check` in `backend/.venv` | No broken requirements found |
+| Framework-free frontend chatbot request tests | 29 passed |
+| Oxlint | Passed with no findings |
+| ESLint | Passed with no findings |
+| Vite production build | Passed; 17 modules transformed |
+| Working-tree and staged whitespace checks | Passed |
+
+The live case was only the explicitly authorized two-request Gemini success described above. Provider failures, malformed output, grounding failures, no match, and rejected SQL were verified with fixed mocked inputs.
+
+The approved current runtime SQLite **file** SHA-256 is `6ec793f68ae34af67927f81199ab68653a7a6c1c47be2f687deed75e4ae572b3`. The separately calculated historical sorted-row logical/snapshot digest is `698d758b3b0201ab9941f2ac90b7e208e0661881f7f132cbc3948f4440c3da27`. They are different measurements; the cause of the byte-level file transition is not proven.
 
 ## Public demo
 
-The [public demo video](https://drive.google.com/file/d/1HIHOgmqgaugYnmLFjktFhjwINth2j6fC/view?usp=sharing) shows the published Assignment 2 Part 1 interface. It demonstrates the preserved Assignment 1 page, invalid ZIP feedback, a successful ZIP `16802` search, the returned search center, nearby-hotel list and Leaflet map, list-to-marker selection, marker-to-list selection, and visible map/data attribution. The Google Drive viewer was checked without an authenticated session and displayed the recording preview without an additional access request.
-
-## Limitations and next work
-
-- Geoapify coverage and optional fields vary. The app presents one page of up to 20 usable hotel records and does not claim an exhaustive inventory.
-- The Places result does not prove price, rating, room inventory, availability, or bookability.
-- Only exact five-digit U.S. ZIP input is supported; broader address/city search is outside Part 1.
-- OpenStreetMap Standard tiles are appropriate for this local, low-volume classroom demonstration, not guaranteed production service.
-- The application has no authentication, payments, taxes, fees, or real reservations.
-- Assignment 2 Part 2 shortlist persistence and chatbot/RAG behavior are not implemented.
-- Assignment 2 Part 2 shortlist persistence and chatbot/RAG behavior remain future work and were not introduced into this assessed Part 1 checkpoint.
+The public [Assignment 2 Part 2 demo video](https://drive.google.com/file/d/1zhnSblbBfTXlPtfD9Oh8gHV-tCraqoQn/view?usp=sharing) demonstrates the reviewed chatbot workflow in the published application. The Drive page was checked without an authenticated session and displayed `Assignment 2 part 2 demo.mp4` without an additional access request.
 
 ## AI assistance disclosure
 
-The AI tool and model used were **OpenAI Codex — GPT-5**. The Codex interface did not expose a more specific internal snapshot identifier, so no version or model suffix is claimed. OpenAI Codex (GPT-5) assisted with research summarization, the early mockup, implementation planning, code generation, tests, debugging, verification, and documentation. Human review and approval were performed at each milestone. No additional generative AI tool or model is claimed for this work.
+The application's runtime generative model is Google Gemini API model `gemini-3.5-flash-lite`. It proposes structured SQL and produces the final grounded explanation; the backend independently validates both stages.
 
-## Prompt traceability
+OpenAI Codex, based on GPT-5, assisted with research summarization, planning, the early mockup, code generation, tests, debugging, verification, documentation, and prompt records. The Codex interface did not expose a more specific internal snapshot identifier, so none is invented. Human review and approval occurred at project milestones, and outputs were checked through automated tests, read-only database evidence, browser evidence, and manual review.
 
-Selected prompt records connect requirements to decisions, code, and verification:
+## Prompt evidence
 
-- Research decision: “use a 5 km circle” and study attribution, list/map patterns, omissions, and misleading behavior — [Prompt 11: research and mockup](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/11-assignment-2-research-and-mockup.md).
-- Dependency decision: inspect, explain, obtain approval, and install only Leaflet locally — [Prompt 12: dependency checkpoint](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/12-leaflet-dependency-checkpoint.md).
-- Backend code decision: keep the key backend-only, cap results, and normalize only supported fields — [Prompt 13: hotel-discovery backend](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/13-hotel-discovery-backend.md).
-- Route and list decision: preserve leading zeros and treat zero hotels as a successful empty result — [Prompt 14: route and list](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/14-hotel-discovery-route-and-list.md).
-- Map decision: use one shared selection state for rows and markers — [Prompt 15: list/map synchronization](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/15-leaflet-list-map-synchronization.md).
-- Verification decision: one live search, mocked failures, regression check, credential scan, and screenshots — [Prompt 16: AutoLoop verification](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/16-assignment-2-part-1-verification.md).
-- Disclosure and report decision: document the model transparently and identify the then-unresolved assessed-commit and video fields — [Prompt 17: documentation checkpoint](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/17-assignment-2-part-1-documentation.md).
-- Publication decision: add the assessed merge, public demo, link audit, and documentation-only final commit — [Prompt 18: publication finalization](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/18-assignment-2-part-1-publication-finalization.md).
+The complete numbered record is indexed in [prompts/README.md](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/README.md). Representative decisions include:
+
+- [Prompt 19](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/19-local-hotel-storage-manual-verification.md): preserve manual database evidence and verify that save, edited simulated values, refresh persistence, and transactional removal match the local tables.
+- [Prompt 20](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/20-assignment-2-part-2-research-and-mockup.md): keep model calls backend-only, treat SQL as untrusted, permit bounded read-only retrieval, and show proposed SQL, records, and answer together.
+- [Prompt 21](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/21-assignment-2-part-2-negative-case-verification.md): prove mocked no-match and rejected-mutation stopping behavior and database immutability.
+- [Prompt 22](https://github.com/srinidhid2004-design/expedia-lite/blob/main/prompts/22-assignment-2-part-2-final-report.md): bind the final report to the assessed merge, public demo, verified evidence, security audit, and documentation-only finalization.
+
+These descriptions deliberately omit credentials, environment contents, and raw provider payloads.
+
+## Limitations and next steps
+
+- Saved hotels are a user-selected local subset, not a complete hotel inventory.
+- Dated rates and room counts are simulated classroom data, not live provider inventory, prices, availability, or a booking guarantee.
+- Geoapify and Gemini require valid backend configuration and remain subject to external availability, quota, policy, and coverage changes.
+- Generated SQL runs only when it passes the strict validator and SQLite defenses; this limits the range of questions the chatbot can answer.
+- One live classroom question verifies that bounded flow, not every possible natural-language question.
+- The application has no authentication, payments, taxes, fees, real inventory, autonomous booking, or database-mutating chatbot action.
+- Reasonable future work could add more deterministic question templates, clearer query guidance, broader adversarial test coverage, and production-grade tile/provider arrangements. Those improvements are not implemented or claimed here.
+- Implementation, merge, publication, demo recording, and report completion are finished. Uploading or submitting materials to Canvas remains a manual user action.

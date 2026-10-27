@@ -4,7 +4,7 @@ Updated: 2026-10-27
 
 ## Orientation
 
-Expedia Lite is on `feature/assignment-2-part-2-rag`, created from reviewed local-storage commit `8566e3058babcce3a1082f5d6eaad56e244c02d8`. The Part 2 research, configuration, read-only retrieval, two-request RAG service, thin FastAPI route, browser request layer, and Vue chatbot interface are complete for the reviewed local feature commit. Three controlled OpenRouter/Nemotron live attempts stopped at malformed Request 1 output and are retained as failed/revised evidence. The active transport is Google Gemini API with exact model `gemini-3.5-flash-lite`; one explicitly authorized two-request live success and fixed mocked negative cases are verified.
+Expedia Lite Assignment 2 Part 2 is complete on `main`, merged and published at assessed implementation commit `007aea0429ed3ce8abc0cfc4ff6e7401f24cb810` (`Merge Assignment 2 Part 2 RAG workflow`). The public demo is recorded, and the final submission report is complete. The active transport is Google Gemini API with exact model `gemini-3.5-flash-lite`; one explicitly authorized two-request live success and fixed mocked negative cases are verified. Three earlier controlled OpenRouter/Nemotron Request 1 failures remain documented as failed/revised evidence.
 
 Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and use [`../docs/verification.md`](../docs/verification.md) and [`../docs/evidence.md`](../docs/evidence.md) for the current checks and evidence.
 
@@ -43,11 +43,14 @@ Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and 
 - Fixed mocked `mutation_sql` verification reached the unchanged validator, returned `rejected_sql`, skipped execution and Request 2, produced no records or answer, and preserved the complete temporary-database snapshot.
 - Gemini fixtures also cover schema-constrained success for both requests, optional intent/limitation, missing/unknown/unsafe fields, malformed and oversized responses, empty and safety-blocked candidates, provider error classes, grounding failures, and header-only key placement.
 
-## Current Git and runtime state
+## Current Git and publication state
 
-- Active branch: `feature/assignment-2-part-2-rag`.
-- Starting commit: `8566e3058babcce3a1082f5d6eaad56e244c02d8` (`Complete local hotel storage activity`).
-- The Part 2 research, application, tests, documentation, and public-safe evidence are included in the local feature commit `Complete Assignment 2 Part 2 RAG workflow`. Nothing from this checkpoint is merged into or pushed to `main`.
+- Active branch: `main`.
+- Assessed implementation merge: `007aea0429ed3ce8abc0cfc4ff6e7401f24cb810` (`Merge Assignment 2 Part 2 RAG workflow`).
+- The feature history, screenshot-sanitization commit, and earlier Assignment 1 and Assignment 2 Part 1 history remain preserved through the normal two-parent merge.
+- Public repository: <https://github.com/srinidhid2004-design/expedia-lite>.
+- Public demo: <https://drive.google.com/file/d/1zhnSblbBfTXlPtfD9Oh8gHV-tCraqoQn/view?usp=sharing>.
+- The final report identifies the assessed implementation commit even though a later documentation-only finalization commit follows it.
 - `backend/expedia_lite.sqlite3` and `.env` remain ignored and untracked.
 - Dependency directories and build output remain ignored and are not proposed for commit.
 - The ignored runtime database currently contains 2 saved hotels, 1 search context, 2 ZIP associations, and 10 demo-night rows created through the authorized Add to Local workflow. Its approved current file SHA-256 is `6ec793f68ae34af67927f81199ab68653a7a6c1c47be2f687deed75e4ae572b3`; its sorted-row canonical logical digest is the historical snapshot value `698d758b3b0201ab9941f2ac90b7e208e0661881f7f132cbc3948f4440c3da27`. The reason for the byte-level transition is not proven. October 10 and 11 contain 10,000 cents and 20 rooms for both saved hotels.
@@ -66,4 +69,4 @@ Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and 
 
 ## Next task
 
-The next task is manual review of the local feature commit, followed by separately authorized merge to `main`, publication, Assignment 2 Part 2 report completion, and demo recording/submission. Any additional live Gemini request still requires separate explicit authorization and must retain exact model `gemini-3.5-flash-lite`, no fallback, and zero retries. No merge or push is authorized by this handoff.
+Implementation, review, merge, publication, demo recording, and report finalization are complete. The remaining action is user-controlled course-site submission. Do not access or submit to Canvas on the user's behalf. Any future live Gemini request still requires separate explicit authorization and must retain exact model `gemini-3.5-flash-lite`, no fallback, and zero retries.

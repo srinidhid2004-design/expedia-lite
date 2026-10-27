@@ -877,3 +877,26 @@ The canonical logical digest and counts also remained as recorded above. The
 database was opened only with `mode=ro` and `query_only` for the logical audit;
 it was not written, normalized, checkpointed, vacuumed, copied over, staged, or
 committed.
+
+## 2026-10-27 — Assignment 2 Part 2 publication and final report
+
+The reviewed Assignment 2 Part 2 implementation was merged normally into
+`main` and published at assessed merge commit
+[`007aea0429ed3ce8abc0cfc4ff6e7401f24cb810`](https://github.com/srinidhid2004-design/expedia-lite/commit/007aea0429ed3ce8abc0cfc4ff6e7401f24cb810)
+(`Merge Assignment 2 Part 2 RAG workflow`). That merge, rather than the later
+documentation-only finalization commit, is the assessed application state.
+
+The public demo is
+[Assignment 2 part 2 demo.mp4](https://drive.google.com/file/d/1zhnSblbBfTXlPtfD9Oh8gHV-tCraqoQn/view?usp=sharing).
+An unauthenticated check returned the expected title and viewer without an
+additional access request. The public repository and assessed merge commit were
+also opened without authentication and identified the repository as public.
+
+The final [`report.md`](../report.md) ties together the public repository,
+assessed merge, startup and safe configuration, research and early mockup,
+implemented two-request workflow, SQLite safeguards, live Gemini success,
+fixed mocked negative cases, failed/revised Nemotron and Gemini approaches,
+automated regression, AI disclosure, prompt evidence, limitations, and manual
+submission boundary. No provider request, source change, test change,
+dependency change, configuration change, screenshot change, or runtime-database
+write was performed during this documentation finalization.
