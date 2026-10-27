@@ -25,6 +25,7 @@ def client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[TestClient]:
     monkeypatch.delenv("GEOAPIFY_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     with TestClient(
         create_app(tmp_path / "api.sqlite3", tmp_path / ".env")
     ) as test_client:
@@ -38,7 +39,35 @@ def test_health(client: TestClient) -> None:
     assert response.json() == {
         "status": "ok",
         "geoapify_api_key": "key is not configured",
+        "gemini_api_key": "key is not configured",
     }
+
+
+def test_health_reports_gemini_configuration_without_key(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env_path = tmp_path / ".env"
+    placeholder = "not-a-real-key"
+    env_path.write_text(
+        f"GEOAPIFY_API_KEY=\nGEMINI_API_KEY={placeholder}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("GEOAPIFY_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    with TestClient(
+        create_app(tmp_path / "api.sqlite3", env_path)
+    ) as test_client:
+        response = test_client.get("/api/health")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "geoapify_api_key": "key is not configured",
+        "gemini_api_key": "key is configured",
+    }
+    assert placeholder not in response.text
 
 
 def test_demo_zip_location_returns_controller_response(

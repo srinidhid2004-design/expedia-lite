@@ -1,10 +1,10 @@
 # Current handoff
 
-Updated: 2026-10-08
+Updated: 2026-10-27
 
 ## Orientation
 
-Expedia Lite is on `assignment2_part2_in_class` at the reviewed Local Hotel Storage checkpoint. The published Assignment 1 and Assignment 2 Part 1 history on `main` remains preserved. This branch adds only the in-class SQLite save/list/remove workflow around the frozen ZIP discovery, list, and Leaflet map.
+Expedia Lite is on `feature/assignment-2-part-2-rag`, created from reviewed local-storage commit `8566e3058babcce3a1082f5d6eaad56e244c02d8`. The Part 2 research, configuration, read-only retrieval, two-request RAG service, thin FastAPI route, browser request layer, and Vue chatbot interface are complete for the reviewed local feature commit. Three controlled OpenRouter/Nemotron live attempts stopped at malformed Request 1 output and are retained as failed/revised evidence. The active transport is Google Gemini API with exact model `gemini-3.5-flash-lite`; one explicitly authorized two-request live success and fixed mocked negative cases are verified.
 
 Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and use [`../docs/verification.md`](../docs/verification.md) and [`../docs/evidence.md`](../docs/evidence.md) for the current checks and evidence.
 
@@ -19,27 +19,38 @@ Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and 
 - Local-first ZIP search: saved matches stop provider fallback; only a successful empty local result calls the preserved nearby-hotel endpoint; a local database failure stops with safe feedback.
 - The same shared provider ID continues to synchronize list and Leaflet marker selection.
 - Preserved Assignment 1 search, booking, history, cancellation, deletion, and one-time SQLite seeding.
+- Part 2 research covering the retired OpenRouter/Nemotron approach, the selected Gemini migration, SQLite read-only/authorizer controls, bounded SQL generation, accessible states, and grounded answers.
+- A fixed-model, no-fallback, zero-retry Gemini GenerateContent flow using schema-constrained JSON for both requests, a thin `POST /api/chatbot/query` route, and the existing accessible Vue trace interface.
+- Defense-in-depth read-only retrieval over only the four local API-hotel tables, with exact-key structured-output parsing, internal safe diagnostics, and unchanged SQL validation.
+- The early chatbot mockup remains labeled as an early design artifact rather than implementation evidence.
 
 ## Verified state
 
-- Complete backend suite: **69 passed** with two known, non-failing upstream test-client deprecation warnings.
-- Local-first request tests: **3 passed**.
+- Most recent complete backend suite after the Gemini prompt correction: **196 passed** with two known, non-failing upstream test-client deprecation warnings.
+- This negative-case checkpoint: **38** focused Gemini/RAG, **53** retrieval-security, and **30** chatbot-route tests passed; the route suite reported the same two known non-failing warnings.
+- Framework-free chatbot request tests: **29 passed** after one test-only optional-chaining regex correction.
 - Oxlint, ESLint, Vite production build, and `git diff --check`: passed.
+- Final regression on October 27: **196 backend tests passed**, `pip check` reported no broken requirements, **29 chatbot request tests passed**, Oxlint and ESLint reported no findings, and the production build transformed 17 modules.
 - Temporary-database tests cover repeat saves, non-overwriting nights, ZIP-scoped lookup, successful transactional removal, forced rollback, and safe API failures.
 - Live health and frontend startup passed; the preserved Assignment 1 `Harbor` search returned `T001` and `T009`.
 - The user completed manual DB Browser and browser review on October 8, 2026 using ZIP `16802` and `Scholar Hotel State College`.
 - The user reported exact hotel/context persistence, five default demo dates, refresh persistence, display of a manually changed 50-cent/10-room value, transactional removal, preservation of Assignment 1 data, and return to API results after removal.
 - Evidence includes the saved-local edited-value view, the matching DB Browser demo-night rows, the empty `saved_hotels` view after removal, and the repeated ZIP search labeled `API results`. The evidence contains no API key or `.env` content.
 - An initial read-only audit found a lingering saved record. After the user repeated removal, a new read-only audit confirmed 0 rows in `saved_hotels`, `saved_search_contexts`, `saved_hotel_zip_associations`, and `demo_hotel_nights`. Assignment 1 tables remained present with 8 hotels, 12 trips, 6 users, and 11 bookings. The earlier discrepancy is resolved.
+- Three controlled Nemotron chatbot attempts used the exact free model and returned a safe `malformed_response` before SQL validation. Each made only Request 1; Request 2 was skipped, no SQL executed, and no row changed. Credential-free screenshots and attempt records remain in the evidence log.
+- One authorized live Gemini flow completed exactly two requests. Its validated SQL bound both occupied dates, the positive-availability threshold, and required-night count; retrieval returned only the two saved hotels at a simulated two-night total of `$200.00` each, excluded checkout October 12, and left the runtime database unchanged.
+- Fixed mocked `no_match_sql` verification completed one provider request, returned zero rows and no generated answer, skipped Request 2, and preserved the temporary database.
+- Fixed mocked `mutation_sql` verification reached the unchanged validator, returned `rejected_sql`, skipped execution and Request 2, produced no records or answer, and preserved the complete temporary-database snapshot.
+- Gemini fixtures also cover schema-constrained success for both requests, optional intent/limitation, missing/unknown/unsafe fields, malformed and oversized responses, empty and safety-blocked candidates, provider error classes, grounding failures, and header-only key placement.
 
 ## Current Git and runtime state
 
-- Active branch: `assignment2_part2_in_class`.
-- This handoff is part of the reviewed feature-branch checkpoint recorded by the commit subject `Complete local hotel storage activity`.
-- Nothing from this checkpoint is merged into or pushed to `main`.
+- Active branch: `feature/assignment-2-part-2-rag`.
+- Starting commit: `8566e3058babcce3a1082f5d6eaad56e244c02d8` (`Complete local hotel storage activity`).
+- The Part 2 research, application, tests, documentation, and public-safe evidence are included in the local feature commit `Complete Assignment 2 Part 2 RAG workflow`. Nothing from this checkpoint is merged into or pushed to `main`.
 - `backend/expedia_lite.sqlite3` and `.env` remain ignored and untracked.
 - Dependency directories and build output remain ignored and are not proposed for commit.
-- The current runtime database contains no saved local hotel, context, association, or demo-night rows after the repeated removal. The ignored database is not part of the feature checkpoint.
+- The ignored runtime database currently contains 2 saved hotels, 1 search context, 2 ZIP associations, and 10 demo-night rows created through the authorized Add to Local workflow. Its approved current file SHA-256 is `6ec793f68ae34af67927f81199ab68653a7a6c1c47be2f687deed75e4ae572b3`; its sorted-row canonical logical digest is the historical snapshot value `698d758b3b0201ab9941f2ac90b7e208e0661881f7f132cbc3948f4440c3da27`. The reason for the byte-level transition is not proven. October 10 and 11 contain 10,000 cents and 20 rooms for both saved hotels.
 
 ## Limitations
 
@@ -47,9 +58,12 @@ Read [`../README.md`](../README.md), follow [`../AGENTS.md`](../AGENTS.md), and 
 - The dated rates and room counts are classroom simulation data only; no real price, availability, or bookability is claimed.
 - Provider coverage and optional fields remain variable.
 - The supplied screenshots capture the saved state, edited demo value, empty saved-hotel view, and provider fallback. The user-reported manual checks and supplementary read-only database counts are distinguished in the evidence log.
-- No shortlist, chatbot, RAG, Nemotron, authentication, payment, taxes, fees, or other LLM behavior is implemented.
+- No shortlist, authentication, payment, taxes, fees, or database-mutating chatbot behavior is implemented.
+- Gemini structured-output enforcement does not replace backend SQL, parameter, retrieval, or grounding validation.
+- Gemini free-tier availability and project limits remain external and variable. Unpaid-tier inputs/outputs may be used to improve Google products and may receive human review, so only non-confidential classroom content is permitted.
+- One bounded live Gemini success is evidence for the tested classroom question only; it is not a guarantee of future free-tier availability or arbitrary-question behavior.
 - Two upstream FastAPI/Starlette test-client deprecation warnings remain non-failing.
 
 ## Next task
 
-The next task is a separately authorized review and merge decision for `assignment2_part2_in_class`. Do not merge, rebase, squash, amend, force-push, or modify `main` without that authorization. Chatbot, RAG, Nemotron, and other LLM behavior remain outside this checkpoint.
+The next task is manual review of the local feature commit, followed by separately authorized merge to `main`, publication, Assignment 2 Part 2 report completion, and demo recording/submission. Any additional live Gemini request still requires separate explicit authorization and must retain exact model `gemini-3.5-flash-lite`, no fallback, and zero retries. No merge or push is authorized by this handoff.

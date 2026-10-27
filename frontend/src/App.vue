@@ -4,6 +4,12 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import HotelDiscoveryMap from './components/HotelDiscoveryMap.vue'
 
 import {
+  ChatbotRequestError,
+  MAX_CHATBOT_QUESTION_CHARACTERS,
+  queryChatbot,
+} from './services/chatbotApi'
+
+import {
   cancelBooking,
   createBooking,
   deleteBooking,
@@ -41,6 +47,82 @@ const isHistoryLoading = ref(false)
 const activeAction = ref('')
 const bookingMessage = ref('')
 const bookingError = ref('')
+
+const chatbotQuestion = ref('')
+const chatbotResult = ref(null)
+const chatbotRequestError = ref('')
+const isChatbotLoading = ref(false)
+
+const CHATBOT_OUTCOME_DETAILS = Object.freeze({
+  success: {
+    title: 'Grounded answer ready',
+    description: 'The answer is grounded in the bounded local records shown below.',
+  },
+  no_match: {
+    title: 'No match or insufficient data',
+    description: 'The saved local records do not contain enough matching data to answer.',
+  },
+  invalid_question: {
+    title: 'Question needs attention',
+    description: 'Enter one clear, bounded question about saved local hotel data.',
+  },
+  rejected_sql: {
+    title: 'Proposed query rejected',
+    description: 'The proposed SQL failed the read-only safety rules and was not executed.',
+  },
+  missing_configuration: {
+    title: 'Chatbot is not configured',
+    description: 'Backend model configuration is missing. No provider request was completed.',
+  },
+  authentication_failure: {
+    title: 'Provider authentication failed',
+    description: 'The backend could not authenticate with the configured provider.',
+  },
+  permission_failure: {
+    title: 'Provider permission denied',
+    description: 'The configured provider account cannot use the approved model.',
+  },
+  quota_failure: {
+    title: 'Provider quota unavailable',
+    description: 'The provider reported that the available quota is exhausted.',
+  },
+  rate_limit_failure: {
+    title: 'Provider rate limit reached',
+    description: 'The provider temporarily limited requests. Try again later.',
+  },
+  timeout: {
+    title: 'Provider request timed out',
+    description: 'The provider did not respond within the backend time limit.',
+  },
+  invalid_request: {
+    title: 'Provider rejected the request',
+    description: 'The fixed bounded provider request was not accepted.',
+  },
+  provider_failure: {
+    title: 'Provider request failed',
+    description: 'The backend could not complete the provider request.',
+  },
+  safety_blocked: {
+    title: 'Provider blocked the response',
+    description: 'The provider safety system did not return usable structured data.',
+  },
+  empty_response: {
+    title: 'Provider returned no answer',
+    description: 'The provider returned no usable structured candidate.',
+  },
+  malformed_response: {
+    title: 'Provider response could not be used',
+    description: 'The provider response did not satisfy the required structured format.',
+  },
+  database_failure: {
+    title: 'Local retrieval failed',
+    description: 'The read-only local database query could not be completed.',
+  },
+  grounding_failure: {
+    title: 'Grounded answer could not be verified',
+    description: 'The returned answer could not be tied safely to the retrieved records.',
+  },
+})
 
 const selectedTraveler = computed(() =>
   travelers.value.find((traveler) => traveler.user_id === selectedUserId.value),
@@ -91,6 +173,27 @@ const historyMessage = computed(() => {
   return `${bookings.value.length} ${bookingLabel} for ${selectedTraveler.value.display_name}.`
 })
 
+const chatbotQuestionLength = computed(() => chatbotQuestion.value.length)
+const chatbotQuestionIsValid = computed(() => {
+  const normalized = chatbotQuestion.value.trim()
+  return (
+    normalized.length > 0
+    && normalized.length <= MAX_CHATBOT_QUESTION_CHARACTERS
+  )
+})
+const chatbotOutcomeDetails = computed(() => (
+  chatbotResult.value
+    ? CHATBOT_OUTCOME_DETAILS[chatbotResult.value.outcome]
+    : null
+))
+const chatbotHasAnswer = computed(() => chatbotResult.value?.outcome === 'success')
+const chatbotHasNoMatch = computed(() => chatbotResult.value?.outcome === 'no_match')
+const chatbotHasOutcomeError = computed(() => (
+  chatbotResult.value
+  && !chatbotHasAnswer.value
+  && !chatbotHasNoMatch.value
+))
+
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -113,6 +216,12 @@ const formatDate = (value) =>
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(`${value}T00:00:00Z`))
+
+const formatTraceValue = (value) => {
+  if (value === null) return 'null'
+  if (typeof value === 'string') return JSON.stringify(value)
+  return String(value)
+}
 
 async function search() {
   const query = hotelName.value.trim()
@@ -167,6 +276,36 @@ async function lookupZip() {
     zipLookupError.value = error.message
   } finally {
     isZipLookupLoading.value = false
+  }
+}
+
+async function submitChatbotQuestion() {
+  if (isChatbotLoading.value) return
+
+  chatbotResult.value = null
+  chatbotRequestError.value = ''
+  const question = chatbotQuestion.value.trim()
+
+  if (!question) {
+    chatbotRequestError.value = 'Enter a question about saved local hotel data.'
+    return
+  }
+  if (question.length > MAX_CHATBOT_QUESTION_CHARACTERS) {
+    chatbotRequestError.value = (
+      `Keep the question to ${MAX_CHATBOT_QUESTION_CHARACTERS} characters or fewer.`
+    )
+    return
+  }
+
+  isChatbotLoading.value = true
+  try {
+    chatbotResult.value = await queryChatbot(question)
+  } catch (error) {
+    chatbotRequestError.value = error instanceof ChatbotRequestError
+      ? error.message
+      : 'The chatbot could not be completed safely. Try again later.'
+  } finally {
+    isChatbotLoading.value = false
   }
 }
 
@@ -648,6 +787,265 @@ onMounted(loadTravelers)
             @select-hotel="selectHotelFromMap"
           />
         </div>
+      </section>
+
+      <section class="chatbot-panel" aria-labelledby="chatbot-title">
+        <div class="chatbot-heading">
+          <div>
+            <p class="eyebrow">Saved-hotel business intelligence</p>
+            <h2 id="chatbot-title">Ask about local hotel data</h2>
+          </div>
+          <p class="chatbot-scope">
+            Answers are limited to saved local hotels and their dated demo-night records.
+            The model never connects to the database directly.
+          </p>
+        </div>
+
+        <form
+          class="chatbot-form"
+          aria-label="Saved hotel chatbot"
+          :aria-busy="isChatbotLoading"
+          @submit.prevent="submitChatbotQuestion"
+        >
+          <label for="chatbot-question">Natural-language question</label>
+          <textarea
+            id="chatbot-question"
+            v-model="chatbotQuestion"
+            name="chatbot-question"
+            rows="4"
+            :maxlength="MAX_CHATBOT_QUESTION_CHARACTERS"
+            aria-describedby="chatbot-question-help chatbot-example chatbot-data-notice"
+            :aria-invalid="
+              Boolean(chatbotRequestError)
+              || chatbotResult?.outcome === 'invalid_question'
+            "
+            placeholder="Ask about saved hotels, dates, simulated rates, or simulated rooms"
+            @keydown.ctrl.enter.prevent="submitChatbotQuestion"
+          />
+          <div class="chatbot-question-meta">
+            <p id="chatbot-question-help">
+              Ask one question of up to {{ MAX_CHATBOT_QUESTION_CHARACTERS }} characters.
+              Press Ctrl+Enter or use the submit button.
+            </p>
+            <span aria-label="Question character count">
+              {{ chatbotQuestionLength }}/{{ MAX_CHATBOT_QUESTION_CHARACTERS }}
+            </span>
+          </div>
+          <p id="chatbot-example" class="chatbot-example">
+            <strong>Example:</strong>
+            Which saved hotels have a room on October 10, 2026, and what is the
+            simulated nightly rate?
+          </p>
+          <button
+            type="submit"
+            :disabled="isChatbotLoading || !chatbotQuestionIsValid"
+          >
+            {{ isChatbotLoading ? 'Checking saved data…' : 'Ask about saved hotels' }}
+          </button>
+        </form>
+
+        <p
+          v-if="isChatbotLoading"
+          class="chatbot-loading"
+          role="status"
+          aria-live="polite"
+        >
+          Preparing a bounded read-only query and grounded answer…
+        </p>
+
+        <p
+          v-if="chatbotRequestError"
+          class="chatbot-feedback chatbot-error"
+          role="alert"
+        >
+          <strong>The question could not be completed.</strong>
+          {{ chatbotRequestError }}
+        </p>
+
+        <section
+          v-if="chatbotHasAnswer"
+          class="chatbot-feedback chatbot-answer"
+          aria-labelledby="chatbot-answer-title"
+          role="status"
+          aria-live="polite"
+        >
+          <h3 id="chatbot-answer-title">{{ chatbotOutcomeDetails.title }}</h3>
+          <p>{{ chatbotResult.answer }}</p>
+        </section>
+
+        <section
+          v-if="chatbotHasNoMatch"
+          class="chatbot-feedback chatbot-no-match"
+          aria-labelledby="chatbot-no-match-title"
+          role="status"
+          aria-live="polite"
+        >
+          <h3 id="chatbot-no-match-title">{{ chatbotOutcomeDetails.title }}</h3>
+          <p>{{ chatbotResult.message || chatbotOutcomeDetails.description }}</p>
+        </section>
+
+        <section
+          v-if="chatbotHasOutcomeError"
+          class="chatbot-feedback chatbot-error"
+          aria-labelledby="chatbot-error-title"
+          role="alert"
+        >
+          <h3 id="chatbot-error-title">{{ chatbotOutcomeDetails.title }}</h3>
+          <p>{{ chatbotResult.message || chatbotOutcomeDetails.description }}</p>
+          <p v-if="chatbotResult.outcome === 'rejected_sql'">
+            Any SQL displayed below is rejection evidence only; it was never executed.
+          </p>
+        </section>
+
+        <p id="chatbot-data-notice" class="chatbot-data-notice">
+          <strong>Simulated classroom data:</strong>
+          checkout is excluded, every requested night must be present, missing nights
+          are unavailable, and displayed rates and room availability are not live hotel data.
+        </p>
+
+        <section
+          v-if="chatbotResult"
+          class="chatbot-trace"
+          aria-labelledby="chatbot-trace-title"
+        >
+          <div class="chatbot-trace-heading">
+            <div>
+              <p class="eyebrow">Safe retrieval trace</p>
+              <h3 id="chatbot-trace-title">How this response was grounded</h3>
+            </div>
+            <span class="chatbot-outcome-label">
+              Outcome: {{ chatbotResult.outcome }}
+            </span>
+          </div>
+
+          <dl class="chatbot-trace-summary">
+            <div>
+              <dt>Bounded question</dt>
+              <dd>{{ chatbotResult.question }}</dd>
+            </div>
+            <div>
+              <dt>Exact model identifier</dt>
+              <dd><code>{{ chatbotResult.model_identifier }}</code></dd>
+            </div>
+            <div>
+              <dt>Provider requests completed</dt>
+              <dd>{{ chatbotResult.provider_request_count }}</dd>
+            </div>
+            <div>
+              <dt>Safe diagnostic classification</dt>
+              <dd>
+                <code v-if="chatbotResult.diagnostic_code">
+                  {{ chatbotResult.diagnostic_code }}
+                </code>
+                <span v-else>None</span>
+              </dd>
+            </div>
+          </dl>
+
+          <div class="chatbot-trace-section">
+            <h4>Proposed read-only SQL</h4>
+            <p v-if="!chatbotResult.proposed_sql" class="chatbot-empty-trace">
+              No SQL proposal was returned for this outcome.
+            </p>
+            <pre v-else><code>{{ chatbotResult.proposed_sql }}</code></pre>
+            <p
+              v-if="chatbotResult.outcome === 'rejected_sql'"
+              class="chatbot-rejected-label"
+            >
+              Rejected before execution
+            </p>
+          </div>
+
+          <div class="chatbot-trace-section">
+            <h4>Safe bound parameters</h4>
+            <p v-if="!chatbotResult.parameters.length" class="chatbot-empty-trace">
+              No bound parameters were supplied.
+            </p>
+            <div v-else class="chatbot-table-wrap">
+              <table class="chatbot-table">
+                <caption>Bound parameter positions and display values</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Position</th>
+                    <th scope="col">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="parameter in chatbotResult.parameters" :key="parameter.position">
+                    <td>{{ parameter.position }}</td>
+                    <td><code>{{ formatTraceValue(parameter.value) }}</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="chatbot-trace-section">
+            <h4>Retrieved bounded records</h4>
+            <p v-if="!chatbotResult.records" class="chatbot-empty-trace">
+              No retrieval result was produced.
+            </p>
+            <template v-else>
+              <p v-if="!chatbotResult.records.rows.length" class="chatbot-empty-trace">
+                The bounded retrieval returned zero rows.
+              </p>
+              <div v-if="chatbotResult.records.columns.length" class="chatbot-table-wrap">
+                <table class="chatbot-table">
+                  <caption>Records returned by the validated read-only query</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Row</th>
+                      <th
+                        v-for="(column, columnIndex) in chatbotResult.records.columns"
+                        :key="`${column}-${columnIndex}`"
+                        scope="col"
+                      >
+                        {{ column }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, rowIndex) in chatbotResult.records.rows" :key="rowIndex">
+                      <th scope="row">{{ rowIndex + 1 }}</th>
+                      <td v-for="(value, columnIndex) in row" :key="columnIndex">
+                        <code>{{ formatTraceValue(value) }}</code>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </div>
+
+          <div class="chatbot-trace-grid">
+            <section>
+              <h4>Grounded answer</h4>
+              <p>{{ chatbotResult.answer || 'No grounded answer was returned.' }}</p>
+            </section>
+            <section>
+              <h4>Explanation</h4>
+              <p>{{ chatbotResult.explanation || 'No explanation was returned.' }}</p>
+            </section>
+            <section>
+              <h4>Referenced row numbers</h4>
+              <p>
+                {{
+                  chatbotResult.referenced_row_numbers.length
+                    ? chatbotResult.referenced_row_numbers.join(', ')
+                    : 'None'
+                }}
+              </p>
+            </section>
+            <section>
+              <h4>Limitation</h4>
+              <p>{{ chatbotResult.limitation || 'No additional limitation was returned.' }}</p>
+            </section>
+          </div>
+
+          <p class="chatbot-provider-notice">
+            {{ chatbotResult.simulated_data_notice }}
+          </p>
+        </section>
       </section>
 
       <section class="traveler-panel" aria-labelledby="traveler-title">

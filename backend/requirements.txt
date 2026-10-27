@@ -1,3 +1,4 @@
 fastapi[standard]>=0.116,<1
+httpx>=0.28,<1
+python-dotenv>=1.2,<2
 pytest>=8,<10
-
