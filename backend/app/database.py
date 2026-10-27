@@ -52,6 +52,50 @@ CREATE TABLE IF NOT EXISTS app_metadata (
 );
 """
 
+_ASSIGNMENT_2_PART_2_MIGRATION = """
+CREATE TABLE IF NOT EXISTS saved_hotels (
+    hotel_id TEXT PRIMARY KEY NOT NULL,
+    name TEXT,
+    address TEXT,
+    latitude REAL NOT NULL CHECK (latitude >= -90.0 AND latitude <= 90.0),
+    longitude REAL NOT NULL CHECK (longitude >= -180.0 AND longitude <= 180.0)
+);
+
+-- Rates and room counts in this table are simulated classroom data.
+-- They are not supplied by Geoapify or another hotel provider.
+CREATE TABLE IF NOT EXISTS demo_hotel_nights (
+    hotel_id TEXT NOT NULL REFERENCES saved_hotels (hotel_id),
+    stay_date TEXT NOT NULL CHECK (
+        stay_date GLOB
+            '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+        AND date(stay_date, '+0 days') = stay_date
+    ),
+    nightly_rate_cents INTEGER NOT NULL DEFAULT 10000 CHECK (
+        typeof(nightly_rate_cents) = 'integer' AND nightly_rate_cents >= 0
+    ),
+    rooms_available INTEGER NOT NULL DEFAULT 20 CHECK (
+        typeof(rooms_available) = 'integer' AND rooms_available >= 0
+    ),
+    PRIMARY KEY (hotel_id, stay_date)
+);
+
+CREATE TABLE IF NOT EXISTS saved_search_contexts (
+    postcode TEXT PRIMARY KEY NOT NULL CHECK (
+        length(postcode) = 5 AND postcode NOT GLOB '*[^0-9]*'
+    ),
+    country_code TEXT NOT NULL CHECK (country_code = 'US'),
+    locality TEXT,
+    latitude REAL NOT NULL CHECK (latitude >= -90.0 AND latitude <= 90.0),
+    longitude REAL NOT NULL CHECK (longitude >= -180.0 AND longitude <= 180.0)
+);
+
+CREATE TABLE IF NOT EXISTS saved_hotel_zip_associations (
+    hotel_id TEXT NOT NULL REFERENCES saved_hotels (hotel_id),
+    postcode TEXT NOT NULL REFERENCES saved_search_contexts (postcode),
+    PRIMARY KEY (hotel_id, postcode)
+);
+"""
+
 
 class TravelDataError(RuntimeError):
     """Raised when the supplied data or local database cannot be used safely."""
@@ -102,6 +146,7 @@ def initialize_database(
         try:
             connection = _connect(database_path)
             connection.executescript(_SCHEMA)
+            connection.executescript(_ASSIGNMENT_2_PART_2_MIGRATION)
             connection.execute("BEGIN IMMEDIATE")
             seeded = connection.execute(
                 "SELECT value FROM app_metadata WHERE key = 'seeded'"

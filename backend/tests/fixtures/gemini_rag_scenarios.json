@@ -1,0 +1,160 @@
+{
+  "fixture": {
+    "description": "Credential-free mocked Gemini GenerateContent structured-output scenarios for the two-request classroom RAG service.",
+    "contains_credentials": false,
+    "network_required": false
+  },
+  "successful_sql": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"sql\":\"SELECT h.hotel_id, h.name, n.stay_date, n.nightly_rate_cents, n.rooms_available FROM saved_hotels h JOIN demo_hotel_nights n ON n.hotel_id = h.hotel_id WHERE h.hotel_id = ? AND n.stay_date >= ? AND n.stay_date < ? AND n.rooms_available > ? ORDER BY n.stay_date LIMIT 20\",\"parameters\":[\"hotel-a\",\"2026-10-10\",\"2026-10-12\",0],\"intent\":\"Retrieve checkout-exclusive simulated nights with positive stored room counts.\"}"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "successful_answer": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"answer\":\"Scholar Hotel State College has two retrieved nights totaling $220.00, with positive simulated room availability on both nights.\",\"referenced_row_numbers\":[1,2],\"explanation\":\"Rows 1 and 2 are October 10 and 11; checkout on October 12 is excluded. The stored simulated rates total 22000 cents.\",\"limitation\":\"Rates and room counts are simulated classroom data, not live inventory or a booking guarantee.\"}"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "no_match_sql": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"sql\":\"SELECT hotel_id, name FROM saved_hotels WHERE hotel_id = ? LIMIT 20\",\"parameters\":[\"absent-hotel\"],\"intent\":\"Look for one saved provider identifier.\"}"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "mutation_sql": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"sql\":\"DELETE FROM saved_hotels WHERE hotel_id = ?\",\"parameters\":[\"hotel-a\"],\"intent\":\"Unsafe mutation attempt.\"}"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "invalid_row_reference": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"answer\":\"An unsupported answer.\",\"referenced_row_numbers\":[3],\"explanation\":\"This row was not returned.\",\"limitation\":null}"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "missing_sql": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {"text": "{\"parameters\":[],\"intent\":\"Missing SQL.\"}"}
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "missing_parameters": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {"text": "{\"sql\":\"SELECT hotel_id FROM saved_hotels LIMIT 20\"}"}
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "unknown_field": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {"text": "{\"sql\":\"SELECT hotel_id FROM saved_hotels LIMIT 20\",\"parameters\":[],\"query\":\"alias\"}"}
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "invalid_parameters": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {"text": "{\"sql\":\"SELECT hotel_id FROM saved_hotels WHERE hotel_id = ? LIMIT 20\",\"parameters\":[true]}"}
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "malformed_json": {
+    "candidates": [
+      {
+        "content": {"role": "model", "parts": [{"text": "{not-json"}]},
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "top_level_array": {
+    "candidates": [
+      {
+        "content": {"role": "model", "parts": [{"text": "[]"}]},
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "empty_candidates": {"candidates": []},
+  "safety_blocked_prompt": {
+    "promptFeedback": {"blockReason": "SAFETY"},
+    "candidates": []
+  },
+  "safety_blocked_candidate": {
+    "candidates": [
+      {"content": {"role": "model", "parts": []}, "finishReason": "SAFETY"}
+    ]
+  }
+}

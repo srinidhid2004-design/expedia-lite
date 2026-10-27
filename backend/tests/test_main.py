@@ -3,6 +3,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
+from app.database import TravelDataError
 from app.main import create_app
 from app.hotel_discovery import (
     DiscoveredHotel,
@@ -24,6 +25,7 @@ def client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[TestClient]:
     monkeypatch.delenv("GEOAPIFY_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     with TestClient(
         create_app(tmp_path / "api.sqlite3", tmp_path / ".env")
     ) as test_client:
@@ -37,7 +39,35 @@ def test_health(client: TestClient) -> None:
     assert response.json() == {
         "status": "ok",
         "geoapify_api_key": "key is not configured",
+        "gemini_api_key": "key is not configured",
     }
+
+
+def test_health_reports_gemini_configuration_without_key(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env_path = tmp_path / ".env"
+    placeholder = "not-a-real-key"
+    env_path.write_text(
+        f"GEOAPIFY_API_KEY=\nGEMINI_API_KEY={placeholder}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("GEOAPIFY_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    with TestClient(
+        create_app(tmp_path / "api.sqlite3", env_path)
+    ) as test_client:
+        response = test_client.get("/api/health")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "geoapify_api_key": "key is not configured",
+        "gemini_api_key": "key is configured",
+    }
+    assert placeholder not in response.text
 
 
 def test_demo_zip_location_returns_controller_response(
@@ -396,6 +426,120 @@ def test_nearby_hotels_maps_safe_discovery_errors(
 
     assert response.status_code == status_code
     assert response.json() == {"detail": detail}
+
+
+def test_saved_hotel_api_round_trip_uses_local_database(
+    client: TestClient,
+) -> None:
+    request = {
+        "provider_place_id": "provider-place-1",
+        "name": "Example Hotel",
+        "formatted_address": "1 Example Street",
+        "latitude": 40.801,
+        "longitude": -77.861,
+        "search_context": {
+            "postcode": "16802",
+            "country_code": "US",
+            "locality": "University Park",
+            "latitude": 40.7982,
+            "longitude": -77.8599,
+        },
+    }
+
+    first_save = client.post("/api/hotels/saved", json=request)
+    repeated_save = client.post("/api/hotels/saved", json=request)
+    local_lookup = client.get(
+        "/api/hotels/saved",
+        params={"postcode": "16802"},
+    )
+
+    assert first_save.status_code == 200
+    assert first_save.json()["created"] is True
+    assert repeated_save.status_code == 200
+    assert repeated_save.json()["created"] is False
+    assert local_lookup.status_code == 200
+    payload = local_lookup.json()
+    assert payload["source"] == "local"
+    assert payload["count"] == 1
+    assert payload["search_center"]["postcode"] == "16802"
+    assert payload["saved_provider_ids"] == ["provider-place-1"]
+    assert len(payload["hotels"][0]["demo_nights"]) == 5
+    assert {
+        night["nightly_rate_cents"]
+        for night in payload["hotels"][0]["demo_nights"]
+    } == {10000}
+    assert {
+        night["rooms_available"]
+        for night in payload["hotels"][0]["demo_nights"]
+    } == {20}
+
+    deletion = client.delete(
+        "/api/hotels/saved",
+        params={"hotel_id": "provider-place-1"},
+    )
+    empty_lookup = client.get(
+        "/api/hotels/saved",
+        params={"postcode": "16802"},
+    )
+
+    assert deletion.status_code == 200
+    assert deletion.json() == {"deleted_hotel_id": "provider-place-1"}
+    assert empty_lookup.status_code == 200
+    assert empty_lookup.json()["count"] == 0
+    assert empty_lookup.json()["saved_provider_ids"] == []
+
+
+@pytest.mark.parametrize("postcode", ["1680", "1680A", "１２３４５"])
+def test_saved_hotel_lookup_rejects_invalid_zip(
+    client: TestClient,
+    postcode: str,
+) -> None:
+    response = client.get(
+        "/api/hotels/saved",
+        params={"postcode": postcode},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Enter exactly five digits for a U.S. ZIP code."
+    }
+
+
+def test_saved_hotel_database_failure_is_safe(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_local_lookup(_postcode, _database_path):
+        raise TravelDataError("private database details")
+
+    monkeypatch.setattr(
+        "app.main.list_saved_hotels_for_postcode",
+        fail_local_lookup,
+    )
+
+    response = client.get(
+        "/api/hotels/saved",
+        params={"postcode": "16802"},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "The travel database could not be used."
+    }
+
+
+def test_remove_unknown_saved_hotel_returns_not_found(
+    client: TestClient,
+) -> None:
+    response = client.delete(
+        "/api/hotels/saved",
+        params={"hotel_id": "missing-place"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "The saved hotel could not be found."
+    }
 
 
 def test_search_returns_joined_stays(client: TestClient) -> None:

@@ -1,6 +1,6 @@
 # Expedia Lite
 
-Expedia Lite is a Vue 3, FastAPI, and SQLite course project. The preserved Assignment 1 application searches instructor-provided hotel stays and supports simulated booking history, cancellation, deletion, and one-time SQLite seeding. Assignment 2 Part 1 adds a backend-only Geoapify workflow that resolves an exact five-digit U.S. ZIP code, requests a bounded page of hotels inside a 5 km circle, and presents the same normalized results in a selectable list and Leaflet map.
+Expedia Lite is a Vue 3, FastAPI, and SQLite course project. The preserved Assignment 1 application searches instructor-provided hotel stays and supports simulated booking history, cancellation, deletion, and one-time SQLite seeding. Assignment 2 Part 1 adds a backend-only Geoapify workflow that resolves an exact five-digit U.S. ZIP code, requests a bounded page of hotels inside a 5 km circle, and presents the same normalized results in a selectable list and Leaflet map. The local-storage checkpoint adds local-first API-hotel saving, dated simulated rates and room counts, and transactional removal. Assignment 2 Part 2 adds a bounded read-only business-intelligence chatbot over those saved local records; one explicitly authorized two-request Gemini flow and the required mocked negative cases have been verified.
 
 Geoapify results are discovery information only. They do not establish price, rating, room availability, bookability, or an exhaustive hotel inventory.
 
@@ -8,13 +8,18 @@ Geoapify results are discovery information only. They do not establish price, ra
 
 ```text
 backend/app/                           FastAPI, SQLite, geocoding, and discovery logic
+backend/app/saved_hotel_data.py        Typed local API-hotel persistence operations
+backend/app/chatbot_retrieval.py       Bounded read-only SQLite retrieval policy
+backend/app/gemini_client.py           Bounded backend-only Gemini REST transport
+backend/app/rag_service.py             Two-request SQL retrieval and grounding flow
 backend/tests/                         Mocked provider, route, persistence, and API tests
 data/                                  Unmodified instructor-provided data pack
-frontend/src/                          Vue interface, API service, and Leaflet component
+frontend/src/                          Vue interfaces, request services, and Leaflet component
+frontend/src/services/chatbotApi.js    Single-field chatbot request and stable trace parsing
 docs/assignment-2-part-1-research.md   Primary-source research and decisions
 docs/assignment-2-part-1-mockup.svg    Approved early annotated wireframe
 docs/design.md                         MVC responsibilities and request flows
-docs/verification.md                   Repeatable Assignment 2 Part 1 checks
+docs/verification.md                   Repeatable Assignment 2 and RAG checks
 docs/evidence.md                       Expected-versus-observed evidence
 handoffs/current.md                    Current state, limitations, and next task
 prompts/                               Selected project instruction records
@@ -30,6 +35,8 @@ Project rules are in [`AGENTS.md`](AGENTS.md). The active continuation notes are
 - Node.js `^22.18.0 || >=24.12.0`
 - npm
 - A Geoapify API key for live ZIP and hotel discovery
+- A Gemini API key for an explicitly authorized live use of the backend-only
+  Part 2 RAG route; repeatable verification uses fake keys and mocked HTTP
 
 The verified environment used Python 3.14.7, SQLite 3.50.4, Node.js 24.20.0, npm 11.19.0, and Leaflet 1.9.4. Python dependencies are declared in `backend/requirements.txt`; frontend dependencies are declared and locked in `frontend/package.json` and `frontend/package-lock.json`.
 
@@ -54,11 +61,23 @@ Create a project-root `.env` file beside `backend/` and `frontend/`:
 
 ```dotenv
 GEOAPIFY_API_KEY=your-key-here
+GEMINI_API_KEY=your-key-here
 ```
 
-The checked-in `.gitignore` excludes `.env` and `.env.*` while allowing a future key-free `.env.example`. Never put the key in Vue source, a `VITE_` variable, screenshots, logs, test fixtures, documentation, or Git.
+The checked-in `.gitignore` excludes `.env` and `.env.*` while allowing the
+key-free `.env.example`. Keep both credentials backend-only. Never put either
+key in Vue source, a `VITE_` variable, screenshots, logs, test fixtures,
+documentation, or Git.
 
-`backend/app/config.py` loads the project-root `.env` through an explicit path. `GET /api/health` reports only whether the key is configured; it never returns the value. Restart FastAPI after creating or editing `.env`. The Vue development server does not need a restart for a backend-only configuration change.
+`backend/app/config.py` loads the project-root `.env` through an explicit path.
+The selected Gemini model is fixed to `gemini-3.5-flash-lite`, and its official
+REST `generateContent` endpoint is fixed in the backend. Authentication uses
+the backend-only `x-goog-api-key` header; neither model, endpoint, nor key can
+be supplied by Vue. `GET /api/health` reports only
+whether each provider key is configured; it never returns a key, authorization
+header, endpoint, environment contents, or provider error. Restart FastAPI
+after creating or editing `.env`. The Vue development server does not need a
+restart for a backend-only configuration change.
 
 ## Run the application
 
@@ -78,11 +97,13 @@ npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 Open `http://127.0.0.1:5173/`. The FastAPI root at `http://127.0.0.1:8000/` has no application page; an HTTP 404 there is expected. Use `http://127.0.0.1:8000/api/health` for backend health. Vite forwards browser requests under `/api` to FastAPI on port 8000.
 
-The first Assignment 1 data request creates and seeds `backend/expedia_lite.sqlite3`; later starts reuse it. The traveler selector represents fictional demo identities only. There is no authentication, payment, or real reservation system.
+The first Assignment 1 data request creates and seeds `backend/expedia_lite.sqlite3`; later starts reuse it. Additive `CREATE TABLE IF NOT EXISTS` migrations add the local API-hotel tables without replacing or reseeding that file. The traveler selector represents fictional demo identities only. There is no authentication, payment, or real reservation system.
 
 ## Hotel discovery and map
 
-Enter exactly five digits in the nearby-hotel form. The ZIP remains a string so leading zeros survive validation. The backend:
+Enter exactly five digits in the nearby-hotel form. The ZIP remains a string so leading zeros survive validation. Vue first requests saved hotels associated with that exact ZIP. A successful local response with matches is displayed immediately and does not consume provider quota. Only a successful empty local response proceeds to the preserved provider workflow. A local database failure is shown and does not fall through to Geoapify.
+
+The provider workflow:
 
 1. resolves only the exact requested U.S. postcode through Geoapify geocoding;
 2. uses the returned longitude and latitude as the center of a 5,000-meter Geoapify Places circle;
@@ -92,14 +113,34 @@ Enter exactly five digits in the nearby-hotel form. The ZIP remains a string so 
 
 Vue renders one result collection in both the table and the Leaflet map. A shared provider place ID synchronizes list and marker selection in both directions. The search center and 5 km circle are visually distinct from hotel markers. Missing names appear as `Name unavailable`; missing addresses appear as `Address not provided`. OpenStreetMap Standard tiles are used for the low-volume classroom demonstration, with Leaflet and `© OpenStreetMap contributors` attribution kept visible. Geoapify attribution appears beside the result summary.
 
+### Local API-hotel storage
+
+`Add to Local` sends only the displayed provider-supported hotel fields and current verified ZIP context to FastAPI. Provider IDs are stored exactly and remain the unique hotel key. ZIP centers are stored separately and associated with hotels through a composite-key table. Saving is idempotent: repeat saves do not duplicate hotels, ZIP associations, or dated rows and do not overwrite existing demo values.
+
+Each newly saved hotel receives five `demo_hotel_nights` rows for October 10–14, 2026. Their default nightly rate is 10,000 cents and their default room count is 20. These values are **simulated classroom data**, not Geoapify prices, availability, or real inventory. Saved results display the five dated values and explain that the saved subset is not a complete hotel inventory.
+
+`Remove from Local` deletes only the selected hotel, its ZIP associations, and its demo-night rows in one SQLite transaction. Other saved hotels, shared ZIP context still in use, Assignment 1 records, and provider-search behavior remain unchanged. Saved state is read from FastAPI by provider ID on every ZIP search, including after a browser refresh.
+
+## Saved-hotel business intelligence chatbot
+
+The Vue chatbot sends exactly one field—`question`—to `POST /api/chatbot/query` through the existing Vite `/api` proxy. The browser cannot select a model, endpoint, provider, SQL statement, prompt, database path, or credential. The backend uses the fixed approved model and applies the read-only retrieval policy described in [`docs/design.md`](docs/design.md).
+
+The interface keeps the entered question visible and clears any stale answer, error, SQL, and records before a new request. It presents loading, grounded success, no-match/insufficient-data, rejected-query, configuration, provider, rate/quota, timeout, malformed-response, database, and grounding outcomes distinctly. A safe trace shows the backend-returned model identifier, proposed SQL, bound parameter display values, bounded records in their returned order, answer, explanation, referenced row numbers, and limitation. Rejected SQL is labeled as unexecuted evidence.
+
+The trace and answer use plain Vue text interpolation—never rendered HTML. Checkout remains excluded, missing nights remain unavailable, and every displayed rate or room count is labeled simulated classroom data. Wide SQL and record tables scroll within their own containers at narrow viewports. Repeatable checks use fixed Gemini fixtures and mocked HTTP only. One separately authorized live Gemini flow completed both requests: Gemini proposed SQL, the unchanged validator accepted it, retrieval returned the two saved classroom hotels, and Request 2 produced a grounded answer. Mocked `no_match_sql` and rejected-mutation cases separately prove one-request stopping and no database mutation.
+
 ## API summary
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/health` | Return application health and key-configuration status without returning the key. |
+| `POST` | `/api/chatbot/query` | Accept only a bounded natural-language question and return a safe SQL/retrieval/grounding trace. |
 | `GET` | `/api/demo/zip-location` | Preserve the fixed classroom demonstration for ZIP `16802`. |
 | `GET` | `/api/zip-location?postcode=16802` | Validate and resolve one exact five-digit U.S. ZIP string. |
 | `GET` | `/api/hotels/nearby?postcode=16802` | Return the verified center and up to 20 normalized hotels within 5 km. |
+| `GET` | `/api/hotels/saved?postcode=16802` | Return the saved local subset for an exact ZIP plus backend-derived saved provider IDs. |
+| `POST` | `/api/hotels/saved` | Idempotently save one provider hotel, its ZIP context, and five simulated classroom nights. |
+| `DELETE` | `/api/hotels/saved?hotel_id=...` | Transactionally remove one saved hotel, its associations, and its demo nights. |
 | `GET` | `/api/hotels/search?name=Harbor` | Preserve the case-insensitive Assignment 1 hotel-name search. |
 | `GET` | `/api/users` | List fictional demo travelers. |
 | `GET` | `/api/bookings?user_id=U001` | Read one traveler’s booking history. |
@@ -108,6 +149,8 @@ Vue renders one result collection in both the table and the Leaflet map. A share
 | `DELETE` | `/api/bookings/{booking_id}` | Permanently delete a test booking. |
 
 Invalid ZIP input, unresolved ZIPs, missing configuration, provider failures, malformed responses, rate/quota failures, and successful zero-hotel responses remain distinct. Safe responses do not expose provider URLs, raw exceptions, or credentials.
+
+Local database failure is also distinct: it stops the local-first workflow and never triggers a provider request. Local saved matches are labeled `Saved locally`; fallback provider records are labeled `API results`.
 
 ## Checks
 
@@ -118,6 +161,7 @@ cd backend
 .\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
 
 cd ..\frontend
+node --test .\tests\travelApi.test.js .\tests\chatbotApi.test.js
 .\node_modules\.bin\oxlint.cmd .
 .\node_modules\.bin\eslint.cmd . --no-cache
 npm run build
@@ -126,4 +170,4 @@ cd ..
 git diff --check
 ```
 
-The final recorded Assignment 2 Part 1 run passed 57 backend tests, a focused 9-test mocked discovery suite, Oxlint, ESLint, the production build, and the whitespace check. See [`docs/evidence.md`](docs/evidence.md) for live-versus-mocked labels, observed values, browser checks, and limitations.
+The frontend chatbot request tests use stubbed `fetch` responses and make no provider request. See [`docs/verification.md`](docs/verification.md) for the repeatable local save/remove, mocked chatbot, lint, and build procedures, and [`docs/evidence.md`](docs/evidence.md) for the published Assignment 2 Part 1 record and current manual local-storage evidence.

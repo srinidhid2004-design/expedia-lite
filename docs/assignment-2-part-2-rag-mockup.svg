@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2020" viewBox="0 0 1600 2020" role="img" aria-labelledby="mockup-title mockup-desc">
+  <title id="mockup-title">Expedia Lite Assignment 2 Part 2 early RAG chatbot mockup</title>
+  <desc id="mockup-desc">An annotated, not-implemented interface mockup that preserves hotel search and local storage context while showing a natural-language question, loading status, proposed read-only SQL, bounded retrieved records, a grounded answer, and no-match, insufficient-data, rejected-query, missing-configuration, and provider-failure states.</desc>
+
+  <defs>
+    <linearGradient id="page-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdfa"/>
+      <stop offset="1" stop-color="#f4f7f8"/>
+    </linearGradient>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#13223b" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .page-title { font: 700 40px Georgia, serif; fill: #13223b; }
+      .header-title { font: 700 40px Georgia, serif; fill: #ffffff; }
+      .header-body { font: 18px Arial, sans-serif; fill: #d8e4ec; }
+      .section-title { font: 700 25px Georgia, serif; fill: #13223b; }
+      .card-title { font: 700 19px Arial, sans-serif; fill: #263b57; letter-spacing: 0.7px; }
+      .body { font: 18px Arial, sans-serif; fill: #41536b; }
+      .body-strong { font: 700 18px Arial, sans-serif; fill: #13223b; }
+      .small { font: 15px Arial, sans-serif; fill: #5f7084; }
+      .small-strong { font: 700 15px Arial, sans-serif; fill: #263b57; }
+      .label { font: 700 14px Arial, sans-serif; fill: #263b57; letter-spacing: 1.2px; }
+      .code { font: 15px Consolas, 'Courier New', monospace; fill: #18324d; }
+      .button { font: 700 18px Arial, sans-serif; fill: #ffffff; }
+      .pill { font: 700 14px Arial, sans-serif; letter-spacing: 0.8px; }
+      .table-head { font: 700 14px Arial, sans-serif; fill: #31465f; letter-spacing: 0.5px; }
+      .table-cell { font: 15px Arial, sans-serif; fill: #243850; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="2020" fill="url(#page-bg)"/>
+  <rect x="0" y="0" width="1600" height="112" fill="#13223b"/>
+  <text x="70" y="55" class="header-title">Expedia Lite — Assignment 2, Part 2</text>
+  <text x="70" y="88" class="header-body">Early SQL-RAG chatbot mockup · review artifact only</text>
+  <rect x="1235" y="28" width="290" height="53" rx="26" fill="#fde8dd"/>
+  <text x="1380" y="61" text-anchor="middle" class="pill" fill="#8c3517">NOT IMPLEMENTED</text>
+
+  <text x="70" y="157" class="section-title">Existing Expedia Lite context remains available</text>
+  <text x="70" y="190" class="body">The proposed assistant is an additional read-only view over locally saved hotel data. It does not replace search, the map, or local-storage controls.</text>
+
+  <g filter="url(#card-shadow)">
+    <rect x="70" y="225" width="445" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+    <rect x="578" y="225" width="445" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+    <rect x="1085" y="225" width="445" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+  </g>
+  <circle cx="115" cy="270" r="22" fill="#e8f2f7"/>
+  <text x="115" y="277" text-anchor="middle" class="body-strong">1</text>
+  <text x="153" y="265" class="card-title">HOTEL SEARCH</text>
+  <text x="105" y="310" class="body">Assignment 1 hotel-name search,</text>
+  <text x="105" y="339" class="body">booking, history, and CRUD remain.</text>
+  <text x="105" y="382" class="small-strong">UNCHANGED</text>
+
+  <circle cx="623" cy="270" r="22" fill="#e8f2f7"/>
+  <text x="623" y="277" text-anchor="middle" class="body-strong">2</text>
+  <text x="661" y="265" class="card-title">ZIP + MAP</text>
+  <text x="613" y="310" class="body">Exact postcode discovery, hotel list,</text>
+  <text x="613" y="339" class="body">Leaflet map, and selection remain.</text>
+  <text x="613" y="382" class="small-strong">UNCHANGED</text>
+
+  <circle cx="1130" cy="270" r="22" fill="#e8f2f7"/>
+  <text x="1130" y="277" text-anchor="middle" class="body-strong">3</text>
+  <text x="1168" y="265" class="card-title">LOCAL STORAGE</text>
+  <text x="1120" y="310" class="body">Add or remove a provider hotel and</text>
+  <text x="1120" y="339" class="body">show dated simulated classroom rows.</text>
+  <text x="1120" y="382" class="small-strong">CHATBOT READS; NEVER MUTATES</text>
+
+  <g filter="url(#card-shadow)">
+    <rect x="70" y="475" width="1460" height="300" rx="22" fill="#ffffff" stroke="#dce4e7"/>
+  </g>
+  <text x="105" y="525" class="label">ASK ABOUT SAVED HOTELS</text>
+  <text x="105" y="561" class="small">Questions are answered only from bounded records retrieved from the local classroom database.</text>
+  <rect x="105" y="590" width="1085" height="105" rx="12" fill="#fbfaf7" stroke="#aeb9c4" stroke-width="2"/>
+  <text x="130" y="630" class="body-strong">Which saved hotel has simulated rooms for October 10–12, 2026,</text>
+  <text x="130" y="662" class="body-strong">and what is the three-night total?</text>
+  <rect x="1220" y="590" width="275" height="64" rx="12" fill="#b6572d"/>
+  <text x="1358" y="630" text-anchor="middle" class="button">Ask saved hotels</text>
+  <text x="105" y="727" class="small">Do not include passwords, payment information, or personal details. Questions are limited to saved hotel and simulated-night records.</text>
+  <rect x="1220" y="673" width="275" height="56" rx="12" fill="#e2e8eb" stroke="#bbc6cc"/>
+  <circle cx="1253" cy="701" r="8" fill="none" stroke="#54677d" stroke-width="3"/>
+  <path d="M1253 693 A8 8 0 0 1 1261 701" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <text x="1373" y="707" text-anchor="middle" class="small-strong">Working… button disabled</text>
+
+  <text x="70" y="835" class="section-title">Inspectable two-request flow</text>
+  <text x="70" y="868" class="body">The remote model proposes a query; the backend validates and executes it read-only; a second request receives only the question and limited records.</text>
+
+  <g filter="url(#card-shadow)">
+    <rect x="70" y="905" width="700" height="455" rx="20" fill="#ffffff" stroke="#dce4e7"/>
+    <rect x="830" y="905" width="700" height="455" rx="20" fill="#ffffff" stroke="#dce4e7"/>
+  </g>
+  <rect x="100" y="936" width="115" height="32" rx="16" fill="#e8f2f7"/>
+  <text x="157" y="958" text-anchor="middle" class="pill" fill="#1d536b">REQUEST 1</text>
+  <text x="100" y="1006" class="card-title">PROPOSED READ-ONLY SQL</text>
+  <text x="100" y="1040" class="small">Visible for review. Proposal is untrusted until backend validation passes.</text>
+  <rect x="100" y="1066" width="640" height="205" rx="12" fill="#f4f7f8" stroke="#ccd6dc"/>
+  <text x="124" y="1100" class="code">SELECT h.hotel_id, h.name, n.stay_date,</text>
+  <text x="124" y="1127" class="code">       n.nightly_rate_cents, n.rooms_available</text>
+  <text x="124" y="1154" class="code">FROM saved_hotels AS h</text>
+  <text x="124" y="1181" class="code">JOIN demo_hotel_nights AS n USING (hotel_id)</text>
+  <text x="124" y="1208" class="code">WHERE n.stay_date &gt;= ? AND n.stay_date &lt; ?</text>
+  <text x="124" y="1235" class="code">ORDER BY h.hotel_id, n.stay_date LIMIT 20</text>
+  <text x="100" y="1313" class="small-strong">✓ one SELECT / read-only WITH only   ✓ bound values   ✓ approved schema</text>
+  <text x="100" y="1338" class="small-strong">✓ LIMIT ≤ 20   ✓ read-only connection + authorizer + progress limit</text>
+
+  <rect x="860" y="936" width="150" height="32" rx="16" fill="#eaf4ec"/>
+  <text x="935" y="958" text-anchor="middle" class="pill" fill="#25583e">LOCAL RETRIEVAL</text>
+  <text x="860" y="1006" class="card-title">BOUNDED RETRIEVED RECORDS</text>
+  <text x="860" y="1040" class="small">Illustrative classroom-default rows for layout only—not live inventory.</text>
+  <rect x="860" y="1066" width="640" height="42" rx="8" fill="#eef2f4"/>
+  <text x="876" y="1092" class="table-head">HOTEL</text>
+  <text x="1082" y="1092" class="table-head">STAY DATE</text>
+  <text x="1224" y="1092" class="table-head">RATE</text>
+  <text x="1350" y="1092" class="table-head">ROOMS</text>
+  <line x1="860" y1="1108" x2="1500" y2="1108" stroke="#d4dde2"/>
+  <text x="876" y="1142" class="table-cell">Name unavailable</text>
+  <text x="1082" y="1142" class="table-cell">2026-10-10</text>
+  <text x="1224" y="1142" class="table-cell">$100.00*</text>
+  <text x="1350" y="1142" class="table-cell">20*</text>
+  <line x1="860" y1="1162" x2="1500" y2="1162" stroke="#e1e7ea"/>
+  <text x="876" y="1196" class="table-cell">Name unavailable</text>
+  <text x="1082" y="1196" class="table-cell">2026-10-11</text>
+  <text x="1224" y="1196" class="table-cell">$100.00*</text>
+  <text x="1350" y="1196" class="table-cell">20*</text>
+  <line x1="860" y1="1216" x2="1500" y2="1216" stroke="#e1e7ea"/>
+  <text x="876" y="1250" class="table-cell">Name unavailable</text>
+  <text x="1082" y="1250" class="table-cell">2026-10-12</text>
+  <text x="1224" y="1250" class="table-cell">$100.00*</text>
+  <text x="1350" y="1250" class="table-cell">20*</text>
+  <rect x="860" y="1281" width="640" height="53" rx="10" fill="#fff4df"/>
+  <text x="880" y="1304" class="small-strong">* SIMULATED CLASSROOM DATA</text>
+  <text x="880" y="1326" class="small">Not live pricing, inventory, availability, or a booking claim.</text>
+
+  <g filter="url(#card-shadow)">
+    <rect x="70" y="1400" width="1460" height="205" rx="20" fill="#ffffff" stroke="#dce4e7"/>
+  </g>
+  <rect x="105" y="1430" width="115" height="32" rx="16" fill="#fde8dd"/>
+  <text x="162" y="1452" text-anchor="middle" class="pill" fill="#8c3517">REQUEST 2</text>
+  <text x="105" y="1500" class="card-title">GROUNDED ANSWER</text>
+  <text x="105" y="1537" class="body-strong">Based on the three retrieved dated rows, “Name unavailable” has a simulated</text>
+  <text x="105" y="1567" class="body-strong">three-night total of $300.00 and 20 simulated rooms recorded for each night.</text>
+  <text x="1015" y="1500" class="small-strong">ANSWER BOUNDARY</text>
+  <text x="1015" y="1530" class="small">Only the original question and these bounded</text>
+  <text x="1015" y="1554" class="small">records reach request 2. No database, key, or</text>
+  <text x="1015" y="1578" class="small">unretrieved hotel fact is exposed or inferred.</text>
+
+  <text x="70" y="1668" class="section-title">Distinct accessible states</text>
+  <text x="70" y="1700" class="body">Each message uses a heading and plain text—not color alone—and appears in a live status region in the implemented design.</text>
+
+  <g filter="url(#card-shadow)">
+    <rect x="70" y="1735" width="345" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+    <rect x="445" y="1735" width="345" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+    <rect x="820" y="1735" width="345" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+    <rect x="1195" y="1735" width="335" height="205" rx="18" fill="#ffffff" stroke="#dce4e7"/>
+  </g>
+
+  <rect x="92" y="1759" width="126" height="30" rx="15" fill="#e8f2f7"/>
+  <text x="155" y="1780" text-anchor="middle" class="pill" fill="#1d536b">NO MATCH</text>
+  <text x="92" y="1823" class="body-strong">No saved records matched.</text>
+  <text x="92" y="1853" class="small">No grounded answer was</text>
+  <text x="92" y="1876" class="small">generated. Try a different</text>
+  <text x="92" y="1899" class="small">date, ZIP, or saved hotel.</text>
+
+  <rect x="467" y="1759" width="154" height="30" rx="15" fill="#fff4df"/>
+  <text x="544" y="1780" text-anchor="middle" class="pill" fill="#765310">INSUFFICIENT</text>
+  <text x="467" y="1823" class="body-strong">Requested nights are missing.</text>
+  <text x="467" y="1853" class="small">The assistant does not infer</text>
+  <text x="467" y="1876" class="small">price or availability for</text>
+  <text x="467" y="1899" class="small">unretrieved dates.</text>
+
+  <rect x="842" y="1759" width="142" height="30" rx="15" fill="#fde8dd"/>
+  <text x="913" y="1780" text-anchor="middle" class="pill" fill="#8c3517">REJECTED</text>
+  <text x="842" y="1823" class="body-strong">Unsafe query blocked.</text>
+  <text x="842" y="1853" class="small">Only one bounded, validated</text>
+  <text x="842" y="1876" class="small">read-only SELECT is allowed.</text>
+  <text x="842" y="1899" class="small">The database stays unchanged.</text>
+
+  <rect x="1217" y="1759" width="170" height="30" rx="15" fill="#f1e8f5"/>
+  <text x="1302" y="1780" text-anchor="middle" class="pill" fill="#664277">SERVICE ERROR</text>
+  <text x="1217" y="1823" class="body-strong">Assistant unavailable.</text>
+  <text x="1217" y="1853" class="small">Key not configured, provider</text>
+  <text x="1217" y="1876" class="small">failed, or quota was reached.</text>
+  <text x="1217" y="1899" class="small">Existing app features continue.</text>
+
+  <line x1="70" y1="1972" x2="1530" y2="1972" stroke="#ccd6dc"/>
+  <text x="70" y="2003" class="small-strong">STATIC EARLY MOCKUP · NOT IMPLEMENTED · DESKTOP LAYOUT SHOWN; NARROW VIEW STACKS PANELS</text>
+  <text x="1530" y="2003" text-anchor="end" class="small">OpenRouter · nvidia/nemotron-3.5-lightning:free</text>
+</svg>

@@ -449,3 +449,431 @@ Related prompt: [`18-assignment-2-part-1-publication-finalization.md`](../prompt
 - Public links were checked for the report, assessed commit, research note, early mockup, evidence log, three screenshots, prompt index, and project documentation.
 - The report and linked project artifacts contain no configured credential or local `.env` contents. The early mockup labels its generic hotel names and addresses as illustrative provider-field placeholders; the implementation and evidence use only provider-returned or explicitly mocked/placeholder data and make no unsupported commercial claim.
 - No application source, dependency declaration, instructor data, generated runtime data, or Canvas content was changed or accessed during this documentation-only finalization.
+
+## 2026-10-08 — Local Hotel Storage manual verification
+
+Related prompt: [`19-local-hotel-storage-manual-verification.md`](../prompts/19-local-hotel-storage-manual-verification.md).
+
+This checkpoint records the user’s completed manual DB Browser and visible-browser review separately from the automated checks. The activity remained on `assignment2_part2_in_class`; no commit, merge, or push was authorized.
+
+### User-reported manual observations
+
+Observation date: **October 8, 2026**. The database inspected was the ignored runtime file `backend/expedia_lite.sqlite3`.
+
+| Action | Expected result | User-observed result |
+| --- | --- | --- |
+| Search ZIP `16802` and save `Scholar Hotel State College` | Store the exact provider hotel once, preserve its searched ZIP and returned location context separately, and create five demo-night rows | `saved_hotels` contained the provider identity/location; `saved_hotel_zip_associations` connected it to `16802`; `saved_search_contexts` contained State College, `US`, and the returned coordinates; `demo_hotel_nights` contained October 10–14, 2026 |
+| Inspect the new demo rows | Every new date begins at 10,000 cents and 20 rooms and is labeled simulated classroom data | All five dates initially contained `10000` cents and `20` rooms |
+| Refresh and repeat ZIP `16802` | Local matches stop provider fallback and reload after refresh | One hotel loaded from the saved local subset and the interface displayed `Saved locally` |
+| In DB Browser, change October 10 to 50 cents and 10 rooms, then select **Write Changes** | A repeat search reads the stored values without a repeat save overwriting them | October 10 displayed `$0.50` and `10 simulated rooms`; October 11–14 remained `$100.00` and `20 simulated rooms` |
+| Select **Remove from Local** | Delete the selected hotel, its ZIP associations, and its demo nights while preserving unrelated records | The saved hotel and related local rows were removed; unrelated Assignment 1 data remained |
+| Repeat ZIP `16802` after removal | A successful empty local lookup permits the preserved provider workflow | The interface returned to labeled `API results` |
+
+Credential-free visual evidence:
+
+- [`local-hotel-storage-manual-rate-edit.png`](../screenshots/local-hotel-storage-manual-rate-edit.png) shows `Saved locally`, the incomplete-inventory and simulated-data explanations, October 10 at `$0.50` with 10 simulated rooms, October 11–14 at `$100.00` with 20 simulated rooms, and the `Remove from Local` control.
+- [`local-hotel-storage-db-rate-edit.png`](../screenshots/local-hotel-storage-db-rate-edit.png) shows the five `demo_hotel_nights` rows in DB Browser, including the manual October 10 values of 50 cents and 10 rooms.
+- [`local-hotel-storage-db-after-removal.png`](../screenshots/local-hotel-storage-db-after-removal.png) shows the refreshed `saved_hotels` table empty after removal.
+- [`local-hotel-storage-api-results-after-removal.png`](../screenshots/local-hotel-storage-api-results-after-removal.png) shows the repeated ZIP `16802` search labeled `API results` after removal.
+
+The screenshots support the saved state, edited demo value, empty saved-hotel view, and provider fallback. They do not independently show every related table or the network sequence; those details are labeled as the user’s manual observations and are supplemented by the read-only query below.
+
+The user confirmed that no API key or `.env` contents appeared in the evidence. Visual review found no credential, environment content, or provider URL containing a credential. The two DB Browser screenshots retain the supplied application title bar, which displays the local project database path; they contain no secret value.
+
+### Removal recheck and discrepancy resolution
+
+An earlier read-only audit found a lingering saved Scholar Hotel record after the first reported removal. The user then repeated **Remove from Local**, repeated ZIP `16802`, observed `API results`, and refreshed DB Browser. A subsequent read-only query on October 8, 2026 confirmed the current ignored runtime-database state without changing it:
+
+- `saved_hotels`: 0 rows
+- `saved_search_contexts`: 0 rows
+- `saved_hotel_zip_associations`: 0 rows
+- `demo_hotel_nights`: 0 rows
+- preserved Assignment 1 tables: 8 hotels, 12 trips, 6 users, and 11 bookings
+
+The current database therefore corroborates the repeated removal and provider fallback. The earlier discrepancy is resolved; no database row was added, changed, or removed by Codex during this recheck.
+
+### Automated review checkpoint
+
+Backend command, run from `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+```
+
+Observed: **69 passed** with two previously documented, non-failing upstream FastAPI/Starlette test-client deprecation warnings.
+
+Frontend commands, run from `frontend/`:
+
+```powershell
+node --test .\tests\travelApi.test.js
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd . --no-cache
+npm run build
+```
+
+Observed: all **3 local-first request tests passed**; Oxlint and ESLint passed without findings; and the Vite production build passed. The request tests verify that saved matches stop the workflow, a successful empty local result permits provider fallback, and a local-storage failure does not call the provider route.
+
+Root command:
+
+```powershell
+git diff --check
+```
+
+Observed: passed without whitespace errors. Git emitted only working-copy LF-to-CRLF advisories. The project-root `.env`, generated SQLite database, `backend/.venv`, `frontend/node_modules`, and `frontend/dist` remained ignored and untracked.
+
+## 2026-10-08 to 2026-10-09 — Part 2 live failures and compatibility revisions
+
+The first explicitly authorized live chatbot attempt on October 8 used
+OpenRouter model `nvidia/nemotron-3.5-lightning:free`, disabled provider
+fallback, and configured zero automatic retries. Request 1 returned malformed
+SQL-proposal output. The service reported `malformed_response`, skipped Request
+2, executed no SQL, and changed no database row. No retry was made in that
+checkpoint.
+
+Credential-free browser evidence:
+[`assignment-2-part-2-live-malformed-proposal.jpg`](../screenshots/assignment-2-part-2-live-malformed-proposal.jpg).
+It shows the bounded question, exact free model identifier, the safe malformed
+outcome, and the absence of proposed SQL, parameters, records, and a grounded
+answer. It does not contain an API key, authorization header, environment
+content, complete provider payload, or credential-bearing URL.
+
+The original parser required `function.arguments` to be a JSON string and
+required `intent`. Because the raw provider payload was deliberately not
+retained, the exact malformed shape cannot be proven. The first safe revision
+accepted decoded argument objects and optional intent while retaining exact
+field/type validation.
+
+The revised compatibility boundary:
+
+- still requires exactly one call to `propose_read_only_query`;
+- still requires exact `sql` and `parameters` fields and rejects unknown fields,
+  aliases, unsafe types, prose, Markdown SQL, multiple objects, and malformed or
+  duplicate-key JSON;
+- accepts only a bounded duplicate-checked JSON string or a bounded
+  already-decoded object for tool arguments;
+- treats missing or blank `intent` as neutral internal trace metadata; and
+- adds a minimal schema-conforming prompt example using `?` bindings and an
+  explicit final `LIMIT 20`.
+
+Internal credential-free diagnostic codes distinguish absent/multiple tool
+calls, wrong tool name, missing/invalid/oversized arguments, invalid or
+duplicate JSON, missing/unknown fields, invalid SQL/intent, and invalid or
+oversized parameter data. These classifications are tested internally and are
+not added to the public API response. Every accepted proposal continues through
+the unchanged `chatbot_retrieval` validator and defense-in-depth read-only
+SQLite connection.
+
+### Second authorized live failure
+
+The second authorized attempt on October 9 reloaded the first compatibility
+revision, confirmed both backend configuration statuses safely, and submitted
+the same bounded question once through the visible frontend. It used the exact
+free model, fallback disabled, and zero retries. Request 1 again returned
+`malformed_response`; the trace showed no proposed SQL, parameters, records, or
+grounded answer. Request 2 was skipped, no SQL executed, and the browser console
+contained zero application errors.
+
+Immediately before and after that attempt, the historical read-only logical
+snapshot had 2 saved hotels, 1 saved search context, 2 ZIP associations, and 10
+demo-night rows. Its canonical digest was
+`698d758b3b0201ab9941f2ac90b7e208e0661881f7f132cbc3948f4440c3da27`.
+This is retained as an earlier logical/snapshot baseline and is not labeled as
+the expected current SQLite file hash.
+The second trace was left visible for manual review. The earlier credential-free
+screenshot remains the persisted representative failure artifact; the second
+attempt did not continue into success screenshots under its stopping rule.
+
+Two malformed Request 1 results after the argument-object/optional-intent fix
+support a narrower additional compatibility hypothesis: the fixed free model
+may return the proposal as assistant content rather than a reliable tool call.
+This is an inference only; no raw provider payload, authorization header, or
+environment content was retained.
+
+### Strict tool-or-content compatibility correction
+
+Request 1 and Request 2 now accept exactly one of two response envelopes:
+
+- one correctly named tool call using the existing bounded strict schema; or
+- when no tool call is emitted, one complete bounded JSON object comprising the
+  entire assistant content.
+
+The assistant-content form is decoded with duplicate-key rejection and then
+uses the same required/optional fields, size/type checks, parameter rules, row
+reference checks, and grounding checks as the tool-call form. Surrounding prose,
+Markdown fences, multiple objects, top-level arrays, aliases, unknown fields,
+and ambiguous tool-plus-content responses are rejected. Request 1 still cannot
+execute SQL until the unchanged `chatbot_retrieval` validator accepts it, and
+Request 2 remains unreachable after malformed/rejected SQL, database failure,
+or zero retrieved rows. No `response_format`, model change, fallback, retry, or
+live provider request was introduced.
+
+Verification completed October 9 with these commands:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -B -m pytest .\tests\test_openrouter_rag.py .\tests\test_chatbot_retrieval.py .\tests\test_chatbot_route.py -q -p no:cacheprovider
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+
+cd ..\frontend
+node --test .\tests\travelApi.test.js .\tests\chatbotApi.test.js
+.\node_modules\.bin\oxlint.cmd .
+.\node_modules\.bin\eslint.cmd . --no-cache
+npm run build
+
+cd ..
+git diff --check
+```
+
+Observed after the strict tool-or-content correction: **138 focused backend
+tests passed**; **213 complete backend tests
+passed** with two known non-failing upstream FastAPI/Starlette test-client
+deprecation warnings; **20 frontend request tests passed**; Oxlint, ESLint, and
+the Vite production build passed. `git diff --check` passed. All provider tests
+used fixed credential-free fixtures, fake credentials, temporary databases, and
+mocked HTTP.
+
+Before and after this compatibility checkpoint, a read-only, `query_only`
+snapshot contained 2 saved hotels, 1 saved search context, 2 ZIP associations,
+and 10 demo-night rows. The historical canonical logical digest remained
+`698d758b3b0201ab9941f2ac90b7e208e0661881f7f132cbc3948f4440c3da27`, confirming
+that this checkpoint did not change the recorded logical state. It is not the
+approved current SQLite file hash.
+
+## 2026-10-20 — Mocked Google Gemini provider migration
+
+The active RAG transport was migrated from the repeatedly unreliable free
+Nemotron endpoint to the assignment-permitted Google Gemini API, exact model
+`gemini-3.5-flash-lite`. This checkpoint made **no live Gemini request** and
+does not claim a live success. The three controlled Nemotron Request 1 failures,
+their credential-free screenshots, and the compatibility revisions above are
+retained as failed/revised-approach evidence.
+
+The new backend transport uses the official REST `generateContent` endpoint,
+the key only in the backend `x-goog-api-key` header, finite timeouts, one
+candidate, bounded request/response sizes, schema-constrained JSON for both
+requests, zero automatic retries, and no provider or model fallback. Request 1
+sends only the bounded classroom question, the allowlisted local-hotel schema,
+and query rules. Request 2 remains unreachable until the unchanged read-only
+retrieval validator accepts the proposal and returns bounded rows; it receives
+only the question and those rows.
+
+Expected versus observed mocked evidence:
+
+| Action | Expected result | Observed result |
+| --- | --- | --- |
+| Mock a valid Request 1 and Request 2 | Exactly two Gemini requests; proposed SQL is independently validated; bounded records and grounded answer are returned | Passed; the fixture query used bound parameters, excluded checkout, required positive room counts, returned two rows, and the grounded answer referenced rows 1 and 2 |
+| Inspect mocked request placement | The fake key appears only in `x-goog-api-key`, never in the URL/body/browser trace | Passed; tests also proved the endpoint/model are fixed backend constants |
+| Mock zero retrieval rows | Return `no_match` after Request 1 and skip Request 2 | Passed with one provider request |
+| Mock mutation SQL and malformed/schema-invalid proposals | Reject before SQL execution and skip Request 2 | Passed; temporary-database SHA-256 and row counts remained unchanged |
+| Mock safety block, empty candidates, authentication, permission, daily quota, rate limit, invalid request, timeout, and provider failure | Return distinct safe outcomes without raw provider content | Passed |
+| Mock an invalid grounded row reference | Return grounding failure after two requests without changing the database | Passed |
+| Exercise the Vue request parser | Continue sending only `{ "question": "..." }` and preserve the existing safe trace contract | Passed for success, no match, rejection, all provider/configuration outcomes, and bounded diagnostics |
+
+Commands and results:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -B -m pytest .\tests\test_gemini_rag.py .\tests\test_chatbot_retrieval.py .\tests\test_chatbot_route.py .\tests\test_config.py .\tests\test_main.py -q -p no:cacheprovider
+# 157 passed; 2 known non-failing FastAPI/Starlette test-client warnings
+
+.\.venv\Scripts\python.exe -B -m pytest -q -p no:cacheprovider
+# 182 passed; same 2 non-failing warnings
+
+cd ..\frontend
+node --test .\tests\travelApi.test.js .\tests\chatbotApi.test.js
+# 31 passed
+
+.\node_modules\.bin\oxlint.cmd .
+# passed with no findings
+
+.\node_modules\.bin\eslint.cmd . --no-cache
+# passed with no findings
+
+npm run build
+# passed; 17 modules transformed; ignored output written to frontend/dist
+```
+
+All provider tests used credential-free fixed fixtures, injected fake test keys,
+`httpx.MockTransport`, and temporary SQLite databases. They did not load the
+project `.env`, contact Gemini, or open the runtime database for writing. The
+real key was not read, printed, logged, copied, validated by value, or exposed.
+Google's unpaid-tier terms state that submitted content and responses may be
+used to improve products and may receive human review; any later authorized
+live check must therefore use only non-confidential classroom content.
+
+## 2026-10-20 — Gemini live success and mocked negative-case verification
+
+### Live Gemini success
+
+Live-versus-mocked label: **live Gemini**, explicitly authorized, using only
+non-confidential classroom data and exact model `gemini-3.5-flash-lite`.
+
+The visible frontend submitted the question asking which saved hotels were
+available for October 10 and October 11, 2026, with October 12 excluded as
+checkout. Gemini Request 1 returned this proposal, which passed the unchanged
+read-only validator:
+
+```sql
+SELECT h.hotel_id, h.name, SUM(n.nightly_rate_cents) AS total_cost_cents
+FROM saved_hotels AS h
+JOIN demo_hotel_nights AS n ON h.hotel_id = n.hotel_id
+WHERE n.stay_date IN (?, ?) AND n.rooms_available > ?
+GROUP BY h.hotel_id, h.name
+HAVING COUNT(DISTINCT n.stay_date) = ?
+LIMIT 20
+```
+
+Safe parameters, in placeholder order, were
+`["2026-10-10", "2026-10-11", 0, 2]`. Retrieval returned only the two saved
+hotels: `Hotel State College` and `Scholar Hotel State College`, each with a
+two-night simulated total of 20,000 cents (`$200.00`). Request 2 grounded its
+answer only in those bounded rows. The trace reported exactly two provider
+requests, excluded checkout October 12, required both occupied nights and
+positive availability, labeled the values simulated classroom data, and showed
+no browser application error. The runtime SQLite file SHA-256 and relevant
+table counts were identical before and after the read-only flow.
+
+Credential-free live evidence:
+
+- [`assignment-2-part-2-gemini-live-success-question-model.jpg`](../screenshots/assignment-2-part-2-gemini-live-success-question-model.jpg)
+- [`assignment-2-part-2-gemini-live-success-sql-parameters.jpg`](../screenshots/assignment-2-part-2-gemini-live-success-sql-parameters.jpg)
+- [`assignment-2-part-2-gemini-live-success-grounded-answer-evidence.jpg`](../screenshots/assignment-2-part-2-gemini-live-success-grounded-answer-evidence.jpg)
+
+### Fixed mocked negative cases
+
+Live-versus-mocked label: **fixed mocked verification**. The credential-free
+fixture is
+[`gemini_rag_scenarios.json`](../backend/tests/fixtures/gemini_rag_scenarios.json).
+The scenarios are `no_match_sql` and `mutation_sql`; fixture metadata marks the
+file as containing no credentials and requiring no network.
+
+| Action | Expected result | Observed result |
+| --- | --- | --- |
+| Run `no_match_sql` against a temporary database | Request 1 returns valid bounded SELECT SQL; validation passes; zero rows produce `no_match`; Request 2 is skipped; no answer or invented hotel/price/availability appears | Passed. Provider request count was 1, the mocked transport recorded one request, records contained zero rows, answer/explanation/limitation were `null`, row references were empty, and the exact safe no-match message was retained by the frontend parser. |
+| Run `mutation_sql` containing `DELETE FROM saved_hotels WHERE hotel_id = ?` | The unchanged validator rejects the proposal before execution; outcome is `rejected_sql`; no records or answer; Request 2 is skipped | Passed. Provider request count was 1, the mocked transport recorded one request, records/answer/explanation/limitation were absent, row references were empty, and the frontend retained both the safe rejected message and the existing visible `never executed` / `Rejected before execution` labels. |
+| Compare each temporary database before and after | No table or file content changes | Passed. Each test compares a whole-file SHA-256 plus counts for `saved_hotels`, `saved_search_contexts`, `saved_hotel_zip_associations`, `demo_hotel_nights`, and an unrelated `users` table. Pre/post snapshots were identical; the count tuple was `(1, 1, 1, 3, 1)`. |
+
+Exact commands and observed results:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -B -m pytest .\tests\test_gemini_rag.py -q -p no:cacheprovider
+# 38 passed
+
+.\.venv\Scripts\python.exe -B -m pytest .\tests\test_chatbot_retrieval.py -q -p no:cacheprovider
+# 53 passed
+
+.\.venv\Scripts\python.exe -B -m pytest .\tests\test_chatbot_route.py -q -p no:cacheprovider
+# 30 passed; 2 known non-failing FastAPI/Starlette test-client warnings
+
+cd ..\frontend
+node --test .\tests\chatbotApi.test.js
+# 29 passed
+
+cd ..
+git diff --check
+# passed; only informational working-copy LF-to-CRLF advisories
+```
+
+The first frontend run exposed one assertion-regex mismatch: the test expected
+direct property access while the existing Vue computed state uses optional
+chaining. Only the test regex was corrected; the application was unchanged.
+The rerun passed all 29 tests.
+
+All backend provider calls used `httpx.MockTransport`, the fixed fixture, a fake
+test key, and pytest temporary SQLite databases. Frontend tests used stubbed
+`fetch`. No live Gemini, OpenRouter, Geoapify, or other network request occurred
+during the negative-case checkpoint. The project `.env` was not read, and
+`backend/expedia_lite.sqlite3` was not opened.
+
+### Approved current runtime-database baseline
+
+On October 27, 2026, the user approved
+`6ec793f68ae34af67927f81199ab68653a7a6c1c47be2f687deed75e4ae572b3`
+as the current runtime SQLite **file** SHA-256. Two consecutive read-only file
+hashes matched. The file remained 77,824 bytes with the previously recorded
+modification time, and no database write, checkpoint, normalization, vacuum, or
+copy operation was performed.
+
+A separate `mode=ro`, `PRAGMA query_only = ON` audit serialized sorted rows from
+the four local-hotel tables as canonical JSON. It found 2 saved hotels, 1 saved
+search context, 2 ZIP associations, and 10 demo-night rows. The canonical
+logical SHA-256 was
+`698d758b3b0201ab9941f2ac90b7e208e0661881f7f132cbc3948f4440c3da27`.
+That value is retained as a historical logical/snapshot baseline; it is not the
+expected current SQLite file hash. The reason the byte-level file hash differs
+from that earlier value is not proven.
+
+The October 10–11 evidence was:
+
+| Hotel | Stay date | Nightly rate | Rooms available |
+| --- | --- | ---: | ---: |
+| Hotel State College | 2026-10-10 | 10,000 cents | 20 |
+| Hotel State College | 2026-10-11 | 10,000 cents | 20 |
+| Scholar Hotel State College | 2026-10-10 | 10,000 cents | 20 |
+| Scholar Hotel State College | 2026-10-11 | 10,000 cents | 20 |
+
+These are simulated classroom rates and room counts. The logical state and
+approved file hash remained stable through the later live-success and mocked
+negative-case checkpoints; no causal explanation for the file-byte transition
+is claimed.
+
+## 2026-10-27 — Assignment 2 Part 2 final regression and security audit
+
+The final local feature checkpoint used no live Gemini, Geoapify, OpenRouter,
+or other provider request. The complete backend suite used its existing fixed
+fixtures, fake credentials, `httpx.MockTransport`, and temporary databases.
+
+Commands and results:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -B -m pytest .\tests -q -p no:cacheprovider
+# 196 passed; 2 known non-failing FastAPI/Starlette test-client warnings
+
+.\.venv\Scripts\python.exe -m pip check
+# No broken requirements found.
+
+cd ..\frontend
+node --test .\tests\chatbotApi.test.js
+# 29 passed
+
+.\node_modules\.bin\oxlint.cmd .
+# passed with no findings
+
+.\node_modules\.bin\eslint.cmd . --no-cache
+# passed with no findings
+
+npm run build
+# passed; 17 modules transformed; ignored output written to frontend/dist
+
+cd ..
+git diff --check
+# passed; only informational working-copy LF-to-CRLF advisories
+```
+
+The route/model audit confirmed `POST /api/chatbot/query`, fixed model
+`gemini-3.5-flash-lite`, zero-retry transport construction, and two bounded
+provider calls only on successful completion. Active runtime files under
+`backend/app/`, `frontend/src/`, and `backend/requirements.txt` contain no
+OpenRouter endpoint, key lookup, dependency, Nemotron identifier, or fallback.
+Historical OpenRouter/Nemotron references remain only in research, evidence,
+prompt, handoff, and failure-evidence artifacts.
+
+The frontend source and generated ignored build output contained no provider
+credential variable, authentication header, or credential-like value. The
+trackable example environment file contains only blank `GEOAPIFY_API_KEY=` and
+`GEMINI_API_KEY=` entries. A filename-only content audit of the intended Part 2
+files found no credential-like value, absolute private user path, or personal
+email. Visual review of all eight new screenshots found no credential, local
+path, browser account detail, or other private information. The already
+committed historical Prompt 06 contains the user-supplied Git identity email;
+it was not changed or restaged by this Part 2 checkpoint.
+
+The approved runtime SQLite file SHA-256 was read twice before and twice after
+verification and remained
+`6ec793f68ae34af67927f81199ab68653a7a6c1c47be2f687deed75e4ae572b3`.
+The canonical logical digest and counts also remained as recorded above. The
+database was opened only with `mode=ro` and `query_only` for the logical audit;
+it was not written, normalized, checkpointed, vacuumed, copied over, staged, or
+committed.

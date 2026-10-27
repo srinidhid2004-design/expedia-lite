@@ -4,15 +4,41 @@
 
 Expedia Lite uses an MVC-style separation with an explicit provider boundary:
 
-| Responsibility | Project location | Assignment 2 Part 1 role |
+| Responsibility | Project location | Current role |
 | --- | --- | --- |
 | Model and provider access | `backend/app/config.py`, `location_controller.py`, `hotel_discovery.py` | Load backend-only configuration, resolve an exact U.S. postcode, call Geoapify Places, validate provider data, and return typed provider-independent records. |
+| Local API-hotel model | `backend/app/database.py`, `saved_hotel_data.py` | Apply additive SQLite tables; save exact provider IDs and ZIP associations; create non-overwriting demo nights; retrieve ZIP-scoped saved subsets; and remove one saved hotel transactionally. |
+| Chatbot provider and orchestration | `backend/app/gemini_client.py`, `rag_service.py` | Use the fixed backend-only Gemini REST configuration and schema-constrained JSON for the two-request proposal/retrieval/grounding flow, then map only safe provider outcomes. |
+| Read-only chatbot retrieval | `backend/app/chatbot_retrieval.py` | Validate hostile SQL and parameters, enforce the table/column/function allowlist and bounds, and execute with defense-in-depth SQLite read-only controls. |
 | HTTP controller | `backend/app/main.py` | Validate five ASCII digits, invoke the discovery controller, and map known outcomes to safe HTTP responses under `/api`. |
-| Browser request service | `frontend/src/services/travelApi.js` | Send the entered postcode only to the local FastAPI route through Vite’s `/api` proxy. |
-| View and interaction state | `frontend/src/App.vue` | Own the form, feedback states, sanitized search-center table, hotel table, and one shared `selectedPlaceId`. |
+| Browser request service | `frontend/src/services/travelApi.js` | Check local saved hotels first, call the provider route only after a successful empty local result, and own save/remove requests through Vite’s `/api` proxy. |
+| Chatbot browser service | `frontend/src/services/chatbotApi.js` | Send only `{ question }`, parse stable success and non-2xx outcomes, preserve safe rejected-query traces, and replace invalid transport payloads with safe client errors. |
+| View and interaction state | `frontend/src/App.vue` | Own the hotel workflows plus bounded chatbot input, distinct outcome feedback, safe trace rendering, and one shared `selectedPlaceId` for list/map selection. |
 | Focused map view | `frontend/src/components/HotelDiscoveryMap.vue` | Render the accepted center, 5 km circle, normalized hotel markers, popups, synchronized selection, and attribution; clean up Leaflet layers on replacement or destruction. |
 
 The browser never calls Geoapify and never receives the API key. The original Assignment 1 SQLite search and booking layers remain separate and operational.
+
+## Local-first data flow
+
+```text
+Five-digit ZIP string
+        ↓
+GET /api/hotels/saved?postcode=...
+        ↓
+Saved matches? ── yes ─→ saved subset + stored center + demo nights
+        │
+        no (successful empty result only)
+        ↓
+GET /api/hotels/nearby?postcode=...
+        ↓
+Preserved Part 1 Geoapify workflow
+```
+
+A local-storage error ends the sequence with useful feedback; it never triggers the provider request. Both result sources use the same normalized provider ID and coordinate fields, so the existing shared list/map selection remains unchanged.
+
+`saved_hotels` owns one exact provider ID. `saved_search_contexts` owns one verified U.S. ZIP center. `saved_hotel_zip_associations` connects them without duplication. `demo_hotel_nights` owns the October 10–14, 2026 classroom rows. The 10,000-cent rate and 20-room count are visibly labeled simulated classroom data and are never described as provider-supplied inventory.
+
+Saving uses one transaction and conflict-safe inserts. Repeating a save may fill a missing association or missing demo date but never overwrites an existing rate or room count. Removing uses one transaction to delete the selected hotel’s demo rows, associations, and hotel row, followed by cleanup of only ZIP contexts no longer referenced by any hotel.
 
 ## Assignment 2 Part 1 data flow
 
@@ -65,6 +91,9 @@ Every map hotel must have a nonblank provider place identifier and valid coordin
 - **Rate or quota failure:** HTTP 429 receives distinct retry-later feedback.
 - **Malformed response:** invalid provider structure is not misreported as a legitimate empty result.
 - **Success:** the center and one normalized collection are returned to both list and map.
+- **Saved local success:** the stored center, ZIP-associated subset, five dated demo values, and incomplete-inventory notice are returned without a provider request.
+- **Local database failure:** safe local feedback is shown and provider fallback is prohibited.
+- **Save/remove failure:** the interface changes saved state only after backend success; a failed transactional removal leaves all related rows intact.
 
 ## List and map synchronization
 
@@ -78,4 +107,62 @@ OpenStreetMap Standard tiles are used only for this low-volume classroom demonst
 
 SQLite stores the instructor-supplied hotel, trip, user, and booking records with their text IDs. `app_metadata` records the one-time seed marker and monotonically increasing booking counter. Assignment 1 hotel search and booking CRUD continue to use SQLite after the first seed. Cancellation retains a row with `cancelled` status; deletion removes the selected booking without allowing its ID to be reused.
 
-The local database is ignored runtime state. Instructor CSV files remain unchanged. Authentication, payment processing, taxes, fees, live room inventory, shortlist persistence, and chatbot/RAG behavior are outside Assignment 2 Part 1.
+The local database is ignored runtime state. Instructor CSV files remain unchanged. Authentication, payment processing, taxes, fees, and live room inventory remain outside the application.
+
+## Assignment 2 Part 2 RAG flow — implemented and bounded live flow verified
+
+The reviewed local hotel storage remains the only retrieval source. The selected provider is Google Gemini API and the exact model is `gemini-3.5-flash-lite`. The provider-independent retrieval layer, two-request backend service, FastAPI route, browser request service, and Vue interface are implemented. Repeatable automated checks use fixed Gemini fixtures, temporary databases, fake credentials, and mocked HTTP only. One explicitly authorized live flow completed Request 1, validated and executed the bounded read-only SQL over the saved-hotel tables, and completed Request 2 with a grounded answer over the two retrieved classroom hotels. Fixed mocked no-match and mutation-rejection scenarios prove that Request 2 is skipped and the temporary database remains unchanged. The retired OpenRouter/Nemotron approach produced three controlled malformed Request 1 outcomes and remains documented as failed/revised evidence.
+
+```text
+Labeled natural-language question
+        ↓
+Vue validation and local /api request only
+        ↓
+Thin FastAPI chatbot route
+        ↓
+Backend-only Gemini GenerateContent client (REQUEST 1)
+question + fixed allowed schema + query rules
+        ↓
+Untrusted schema-constrained JSON: SQL + positional parameters
+        ↓
+SQL policy validation
+        ↓
+SQLite mode=ro + query_only + default-deny authorizer
+approved tables/functions + bound parameters + time/row/payload limits
+        ↓
+0 rows → deterministic no-match/insufficient-data response
+        ↓ bounded rows
+Backend normalization and deterministic date/total/coverage calculations
+        ↓
+Backend-only Gemini GenerateContent client (REQUEST 2)
+fixed grounding rules + original question + limited records only
+        ↓
+Grounded answer with record references
+        ↓
+Vue: proposed SQL + retrieved records + answer + explicit state label
+```
+
+### Current responsibilities
+
+- **Configuration/provider model:** backend configuration reads the Gemini key from the ignored project-root `.env`; health exposes configured/not-configured status only. Model and endpoint are fixed backend constants and cannot be supplied by Vue.
+- **Model client:** sends finite-timeout REST requests to the exact model with the key only in `x-goog-api-key`, bounds request/response bytes and token output, requests one schema-constrained JSON candidate, maps safe error categories, and never logs headers, raw provider payloads, or exception text. Automatic retries and provider/model fallbacks are absent.
+- **Query proposal service:** supplies the fixed local-hotel schema, rules, exact JSON keys, and one minimal `?`-binding/final-`LIMIT` example. It requires `sql` and `parameters`; optional or blank `intent` becomes a neutral internal description. Unknown fields, aliases, unsafe types, malformed or duplicate-key JSON, and oversized data are rejected. Every accepted proposal still passes through the unchanged retrieval security layer; the model has no database connection or SQL-execution tool.
+- **SQL policy/controller:** allows one bounded read-only query over `saved_hotels`, `saved_hotel_zip_associations`, `saved_search_contexts`, and `demo_hotel_nights`; validates placeholders and parameters; default-denies every other SQLite authorization action.
+- **Retrieval model:** opens a separate `file:` URI connection in `mode=ro`, enables `PRAGMA query_only`, installs an authorizer and progress deadline, executes with bound parameters, and returns no more than 20 normalized rows or 32 KiB.
+- **Grounding service:** computes coverage and totals from integer cents/dated rows, then gives the second request only the question and limited records. Schema-constrained JSON requires an answer, referenced row numbers, and an explanation; limitation is optional. Independent row-reference and grounding checks still apply. Zero rows and incomplete requested nights produce deterministic no-match/insufficient-data feedback without Request 2.
+- **FastAPI controller:** validates question length, orchestrates the two-request flow, and maps missing configuration, rejected query, insufficient data, authentication, quota/rate, timeout, malformed response, and provider failure to safe distinct responses.
+- **Vue request/view:** `chatbotApi.js` submits only the bounded question through `/api`; `App.vue` clears stale output, prevents repeat submission while loading, and renders labeled SQL, semantic parameter/record tables, a grounded answer, row references, limitations, and distinct error/empty states without displacing the existing search/map/local-storage workflows.
+
+### Planned safety invariants
+
+- A model response can never authorize itself. Static backend policy and SQLite enforce the boundary.
+- `Connection.execute` is used for one statement; `executescript` is prohibited.
+- User values travel as bound parameters, not interpolated SQL literals.
+- Assignment 1 tables, users, and bookings are outside the chatbot allowlist.
+- Checkout is excluded from multi-night stays. Missing nights are not treated as available.
+- Prices and room counts remain labeled simulated classroom data, never live inventory.
+- No chatbot response can save/remove a hotel or create/cancel/delete a booking.
+- Automated tests use labeled fixtures/mocks; a minimal live call requires explicit separate approval.
+- Non-sensitive internal diagnostic codes distinguish schema-invalid proposal/answer fields for tests and evidence. The public chatbot response never returns raw provider content.
+
+Research rationale and rejected approaches are recorded in [`assignment-2-part-2-research.md`](assignment-2-part-2-research.md). The early interface proposal is [`assignment-2-part-2-rag-mockup.svg`](assignment-2-part-2-rag-mockup.svg).
